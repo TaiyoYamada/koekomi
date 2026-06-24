@@ -15,12 +15,20 @@
 var SHEET_NAME = 'servers';
 var HEADERS = ['serverId', 'color', 'label', 'apiUrl', 'enabled', 'capacity', 'assignedCount', 'lastSeen'];
 
+// 在席（TTL）方式の負荷カウント用。端末が presence を送り続けている間だけ「在席」とみなす。
+var PRESENCE_SHEET = 'presence';
+var PRESENCE_HEADERS = ['deviceId', 'serverId', 'lastSeen'];
+var PRESENCE_TTL_MS = 90 * 1000; // この秒数以内に presence が来た端末を「在席中」と数える
+
 /** 初回に一度だけ実行: シートとヘッダーを用意する。 */
 function setup() {
   var sheet = getSheet_();
   sheet.clear();
   sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
-  SpreadsheetApp.getActiveSpreadsheet().toast('servers シートを初期化しました');
+  var p = getPresenceSheet_();
+  p.clear();
+  p.getRange(1, 1, 1, PRESENCE_HEADERS.length).setValues([PRESENCE_HEADERS]);
+  SpreadsheetApp.getActiveSpreadsheet().toast('servers / presence シートを初期化しました');
 }
 
 function getSheet_() {
@@ -31,6 +39,46 @@ function getSheet_() {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   }
   return sheet;
+}
+
+function getPresenceSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(PRESENCE_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(PRESENCE_SHEET);
+    sheet.getRange(1, 1, 1, PRESENCE_HEADERS.length).setValues([PRESENCE_HEADERS]);
+  }
+  return sheet;
+}
+
+/** presence シートを読む（1端末1行、deviceId がキー）。 */
+function readPresence_() {
+  var sheet = getPresenceSheet_();
+  var values = sheet.getDataRange().getValues();
+  var rows = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    if (!row[0]) continue;
+    rows.push({
+      rowIndex: r + 1,
+      deviceId: String(row[0]),
+      serverId: String(row[1]),
+      lastSeen: row[2] ? Number(row[2]) : 0
+    });
+  }
+  return rows;
+}
+
+/** serverId -> 在席中の端末数（TTL以内）を返す。 */
+function activeCounts_(now) {
+  var rows = readPresence_();
+  var map = {};
+  for (var i = 0; i < rows.length; i++) {
+    if (now - rows[i].lastSeen <= PRESENCE_TTL_MS) {
+      map[rows[i].serverId] = (map[rows[i].serverId] || 0) + 1;
+    }
+  }
+  return map;
 }
 
 /** 全行をオブジェクト配列で読む。 */
@@ -80,10 +128,13 @@ function jsonOut_(obj) {
 function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) || 'list';
   if (action === 'list') {
+    var now = Date.now();
+    var active = activeCounts_(now);
     var rows = readRows_().map(function (r) {
       return {
         serverId: r.serverId, color: r.color, label: r.label, apiUrl: r.apiUrl,
         enabled: r.enabled, capacity: r.capacity, assignedCount: r.assignedCount,
+        activeCount: active[r.serverId] || 0, // TTL方式のライブ負荷
         lastSeen: r.lastSeen
       };
     });
@@ -92,7 +143,7 @@ function doGet(e) {
   return jsonOut_({ error: 'unknown action: ' + action });
 }
 
-/** POST: register / heartbeat / assign / release を処理する。 */
+/** POST: register / heartbeat / assign / release / disable / presence を処理する。 */
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(10000); // 同時更新を防ぐ
@@ -159,6 +210,26 @@ function doPost(e) {
       existing.enabled = false;
       writeRow_(sheet, existing.rowIndex, existing);
       return jsonOut_({ ok: true, action: 'disable' });
+    }
+
+    // 在席ハートビート: 端末が「このサーバーで使用中」と定期的に知らせる。
+    // 1端末=1行（deviceId がキー）。serverId は最新のものに更新（サーバー移動に対応）。
+    if (action === 'presence') {
+      var deviceId = body.deviceId || params.deviceId || '';
+      if (!deviceId) return jsonOut_({ error: 'deviceId required' });
+      var psheet = getPresenceSheet_();
+      var prows = readPresence_();
+      var pfound = null;
+      for (var pi = 0; pi < prows.length; pi++) {
+        if (prows[pi].deviceId === deviceId) { pfound = prows[pi]; break; }
+      }
+      if (pfound) {
+        psheet.getRange(pfound.rowIndex, 1, 1, PRESENCE_HEADERS.length)
+          .setValues([[deviceId, serverId, now]]);
+      } else {
+        psheet.appendRow([deviceId, serverId, now]);
+      }
+      return jsonOut_({ ok: true, action: 'presence' });
     }
 
     return jsonOut_({ error: 'unknown action: ' + action });
