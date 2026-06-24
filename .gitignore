@@ -1,0 +1,23 @@
+# Node
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Frontend env
+frontend/.env
+frontend/.env.local
+
+# Python
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.venv/
+backend/venv/
+*.pyc
+backend/output/
+backend/tmp/
+backend/.env
+
+# Colab / runtime
+colab/.env
+*.ngrok.yml
