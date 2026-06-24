@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { NavBar } from '../components/NavBar'
+import { Ruby } from '../components/Furigana'
+import { NEXT } from '../ui/labels'
 import { findPanel, usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import { startRecording, isRecordingSupported, type ActiveRecorder } from '../lib/recorder'
@@ -19,7 +21,7 @@ export function SelfRecordComas({ stepNumber, goNext, goBack }: StepProps) {
       activeRef.current = await startRecording()
       setRecordingIdx(i)
     } catch {
-      alert('マイクを つかえませんでした')
+      alert('マイクが使えませんでした')
     }
   }
 
@@ -45,8 +47,8 @@ export function SelfRecordComas({ stepNumber, goNext, goBack }: StepProps) {
     <div>
       <StepHead
         num={stepNumber}
-        title="自分で声をろくおん"
-        hint="コマごとに セリフを 声に だして ろくおんしよう"
+        title="自分(じぶん)で声(こえ)を録音(ろくおん)"
+        hint={<Ruby text="コマごとにセリフを声(こえ)に出(だ)して録音(ろくおん)しよう" />}
       />
       {selectedPanels.map((pid, i) => {
         const panel = findPanel(panels, pid)
@@ -57,14 +59,16 @@ export function SelfRecordComas({ stepNumber, goNext, goBack }: StepProps) {
             <div className="line-row" style={{ margin: 0, boxShadow: 'none', padding: 0 }}>
               {panel && <img src={panel.src} alt={panel.label} />}
               <div style={{ flex: 1 }}>
-                <div className="coma-no">{i + 1}コマめ</div>
+                <div className="coma-no">
+                  <Ruby text={`${i + 1}コマ目(め)`} />
+                </div>
                 <div style={{ fontWeight: 700 }}>{lines[i] || '（セリフなし）'}</div>
               </div>
             </div>
             <div className="row" style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               {!isRec ? (
                 <button className="btn rec" onClick={() => start(i)} disabled={!supported || recordingIdx !== null}>
-                  ● ろくおん
+                  <Ruby text="● 録音(ろくおん)" />
                 </button>
               ) : (
                 <button className="btn stop" onClick={() => stop(i)}>
@@ -80,7 +84,7 @@ export function SelfRecordComas({ stepNumber, goNext, goBack }: StepProps) {
           </div>
         )
       })}
-      <NavBar onBack={goBack} onNext={goNext} nextDisabled={!anyDone} nextLabel="4コマげきじょうを見る →" />
+      <NavBar onBack={goBack} onNext={goNext} nextDisabled={!anyDone} nextLabel={NEXT.toTheater} />
     </div>
   )
 }

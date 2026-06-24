@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
+import { Ruby } from './Furigana'
 
-/** ステップの見出し（番号・タイトル・ヒント）。 */
+/** ステップの見出し（番号・タイトル・ヒント）。タイトルはふりがな記法で渡す。 */
 export function StepHead({
   num,
   title,
@@ -14,7 +15,9 @@ export function StepHead({
     <>
       <div className="step-head">
         <div className="step-num">{num}</div>
-        <h2 className="step-title">{title}</h2>
+        <h2 className="step-title">
+          <Ruby text={title} />
+        </h2>
       </div>
       {hint && <p className="step-hint">{hint}</p>}
     </>

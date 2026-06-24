@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { NavBar } from '../components/NavBar'
+import { Ruby } from '../components/Furigana'
+import { NEXT } from '../ui/labels'
 import { useApp } from '../state'
 import { transcribe } from '../lib/api'
 import type { StepProps } from './types'
@@ -31,15 +33,17 @@ export function Transcribe({ stepNumber, goNext, goBack }: StepProps) {
     <div>
       <StepHead
         num={stepNumber}
-        title="もじにする"
-        hint="ろくおんした 声を もじに してみよう。ちがう ところは なおせるよ。"
+        title="文字(もじ)にする"
+        hint={<Ruby text="録音(ろくおん)した声(こえ)を文字(もじ)にしてみよう。違(ちが)うところは直(なお)せるよ。" />}
       />
 
       {error && <div className="banner err">{error}</div>}
 
       <div className="card center">
         <button className="btn big" onClick={run} disabled={busy || !assignment}>
-          {busy ? 'もじにしているよ…' : done ? 'もういちど もじにする' : '🪄 もじにする'}
+          <Ruby
+            text={busy ? '文字(もじ)にしているよ…' : done ? 'もう一度(いちど)文字(もじ)にする' : '🪄 文字(もじ)にする'}
+          />
         </button>
         {busy && <div className="spinner" />}
       </div>
@@ -47,7 +51,7 @@ export function Transcribe({ stepNumber, goNext, goBack }: StepProps) {
       {(done || referenceText) && (
         <div className="card">
           <p className="step-hint" style={{ marginTop: 0 }}>
-            なおしたい ところは ここで かきなおしてね
+            <Ruby text="直(なお)したいところはここで書(か)き直(なお)してね" />
           </p>
           <textarea
             rows={3}
@@ -61,7 +65,7 @@ export function Transcribe({ stepNumber, goNext, goBack }: StepProps) {
         onBack={goBack}
         onNext={goNext}
         nextDisabled={!referenceText.trim()}
-        nextLabel="AIで声を作る →"
+        nextLabel={NEXT.toGenerate}
       />
     </div>
   )

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { NavBar } from '../components/NavBar'
+import { Ruby } from '../components/Furigana'
+import { NEXT } from '../ui/labels'
 import { useApp } from '../state'
 import { fileUrl, generateComicVoices } from '../lib/api'
 import type { StepProps } from './types'
@@ -35,48 +37,53 @@ export function GenerateVoices({ stepNumber, goNext, goBack }: StepProps) {
     <div>
       <StepHead
         num={stepNumber}
-        title="AIで声を作る"
-        hint="あなたの 声を つかって、4つの セリフを しゃべる 声を 作るよ"
+        title="AIで声(こえ)を作(つく)る"
+        hint={<Ruby text="あなたの声(こえ)を使(つか)って、4つのセリフを話(はな)す声(こえ)を作(つく)るよ" />}
       />
 
       {error && (
         <div className="banner err">
-          うまく いかなかったよ: {error}
+          <Ruby text="うまくいかなかったよ：" />
+          {error}
           <br />
-          先生に 言って、別の サーバーに つなぎなおすか、フォールバックモードを つかってね。
+          <Ruby text="先生(せんせい)に言(い)って、別(べつ)のサーバーにつなぎ直(なお)すか、フォールバックモードを使(つか)ってね。" />
         </div>
       )}
 
       <div className="card center">
         <button className="btn big" onClick={run} disabled={busy || !assignment}>
-          {busy ? '声を 作っているよ…' : allDone ? 'もういちど 作る' : '🎙️ 声を作る'}
+          <Ruby
+            text={busy ? '声(こえ)を作(つく)っているよ…' : allDone ? 'もう一度(いちど)作(つく)る' : '🎙️ 声(こえ)を作(つく)る'}
+          />
         </button>
         {busy && (
           <>
             <div className="spinner" />
-            <p className="step-hint">じゅんばんに 作っているよ。すこし まってね。</p>
+            <p className="step-hint">
+              <Ruby text="順番(じゅんばん)に作(つく)っているよ。少(すこ)し待(ま)ってね。" />
+            </p>
           </>
         )}
       </div>
 
       {allDone && (
         <div className="card">
-          <div className="banner ok">できたよ！1つずつ きいてみよう。</div>
+          <div className="banner ok">
+            <Ruby text="できたよ！1つずつ聞(き)いてみよう。" />
+          </div>
           {comaVoiceUrls.map((u, i) => (
             <div key={i} style={{ marginBottom: 12 }}>
-              <div className="coma-no">{i + 1}コマめ：{lines[i] || '（なし）'}</div>
+              <div className="coma-no">
+                <Ruby text={`${i + 1}コマ目(め)：`} />
+                {lines[i] || '（なし）'}
+              </div>
               {u && <audio src={u} controls style={{ width: '100%' }} />}
             </div>
           ))}
         </div>
       )}
 
-      <NavBar
-        onBack={goBack}
-        onNext={goNext}
-        nextDisabled={!allDone}
-        nextLabel="4コマげきじょうを見る →"
-      />
+      <NavBar onBack={goBack} onNext={goNext} nextDisabled={!allDone} nextLabel={NEXT.toTheater} />
     </div>
   )
 }

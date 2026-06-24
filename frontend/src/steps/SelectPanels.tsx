@@ -1,5 +1,7 @@
 import { StepHead } from '../components/StepHead'
 import { NavBar } from '../components/NavBar'
+import { Ruby } from '../components/Furigana'
+import { NEXT } from '../ui/labels'
 import { usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import type { StepProps } from './types'
@@ -23,10 +25,15 @@ export function SelectPanels({ stepNumber, goNext, goBack, isFirst }: StepProps)
     <div>
       <StepHead
         num={stepNumber}
-        title="えをえらぶ"
-        hint={`すきな えを 4まい えらんでね（${selectedPanels.length}/4）`}
+        title="絵(え)を選(えら)ぶ"
+        hint={<Ruby text={`すきな絵(え)を4枚(まい)選(えら)んでね（${selectedPanels.length}/4）`} />}
       />
-      {error && <div className="banner err">えが よみこめませんでした: {error}</div>}
+      {error && (
+        <div className="banner err">
+          <Ruby text="絵(え)が読(よ)みこめませんでした：" />
+          {error}
+        </div>
+      )}
       {loading ? (
         <div className="spinner" />
       ) : (
@@ -51,7 +58,7 @@ export function SelectPanels({ stepNumber, goNext, goBack, isFirst }: StepProps)
         hideBack={isFirst}
         onNext={goNext}
         nextDisabled={selectedPanels.length !== 4}
-        nextLabel="セリフを書く →"
+        nextLabel={NEXT.toLines}
       />
     </div>
   )

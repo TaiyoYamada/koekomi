@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from './state'
 import { ensureAssignment, assignFreshServer } from './lib/registry'
 import { ServerBadge } from './components/ServerBadge'
-import { StepDots } from './components/StepDots'
+import { StepTabs } from './components/StepTabs'
+import { Ruby } from './components/Furigana'
+import { TABS } from './ui/labels'
 import type { StepProps } from './steps/types'
 import { SelectPanels } from './steps/SelectPanels'
 import { WriteLines } from './steps/WriteLines'
@@ -16,11 +18,29 @@ import type { VoiceMode } from './types'
 
 type StepComp = (p: StepProps) => JSX.Element
 
-/** モードごとのステップ構成。 */
-function stepsForMode(mode: VoiceMode): StepComp[] {
-  if (mode === 'self-record') return [SelectPanels, WriteLines, SelfRecordComas, Theater]
-  if (mode === 'browser-tts') return [SelectPanels, WriteLines, Theater]
-  return [SelectPanels, WriteLines, Record, Transcribe, GenerateVoices, Theater]
+interface StepDef {
+  Comp: StepComp
+  label: string
+  icon: string
+}
+
+const TAB_PANELS: StepDef = { Comp: SelectPanels, label: TABS.panels, icon: '🖼️' }
+const TAB_LINES: StepDef = { Comp: WriteLines, label: TABS.lines, icon: '✏️' }
+const TAB_THEATER: StepDef = { Comp: Theater, label: TABS.theater, icon: '🎬' }
+
+/** モードごとのステップ構成（順番は強制せず、タブで自由に行き来できる）。 */
+function stepsForMode(mode: VoiceMode): StepDef[] {
+  if (mode === 'self-record')
+    return [TAB_PANELS, TAB_LINES, { Comp: SelfRecordComas, label: TABS.record, icon: '🎤' }, TAB_THEATER]
+  if (mode === 'browser-tts') return [TAB_PANELS, TAB_LINES, TAB_THEATER]
+  return [
+    TAB_PANELS,
+    TAB_LINES,
+    { Comp: Record, label: TABS.record, icon: '🎤' },
+    { Comp: Transcribe, label: TABS.transcribe, icon: '📝' },
+    { Comp: GenerateVoices, label: TABS.generate, icon: '🪄' },
+    TAB_THEATER,
+  ]
 }
 
 export function App() {
@@ -65,7 +85,7 @@ export function App() {
 
   const steps = stepsForMode(mode)
   const clampedIndex = Math.min(stepIndex, steps.length - 1)
-  const StepComponent = steps[clampedIndex]
+  const StepComponent = steps[clampedIndex].Comp
 
   const goNext = () => setStepIndex((i) => Math.min(i + 1, steps.length - 1))
   const goBack = () => setStepIndex((i) => Math.max(i - 1, 0))
@@ -81,26 +101,30 @@ export function App() {
 
       {/* 接続まわりの状態表示（AIモードのみ） */}
       {mode === 'ai' && connecting && (
-        <div className="banner">サーバーに つないでいます…</div>
+        <div className="banner">サーバーにつないでいます…</div>
       )}
       {mode === 'ai' && connError && (
         <div className="banner err">
-          サーバーに つなげませんでした。
+          <Ruby text="サーバーにつなげませんでした。" />
           <div className="row" style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <button className="btn secondary" onClick={() => void reassign()}>
-              べつの サーバーに つなぐ
+              <Ruby text="別(べつ)のサーバーにつなぐ" />
             </button>
             <button className="btn secondary" onClick={() => setMode('self-record')}>
-              自分で ろくおんモード
+              <Ruby text="自分(じぶん)で録音(ろくおん)モード" />
             </button>
             <button className="btn secondary" onClick={() => setMode('browser-tts')}>
-              読み上げモード
+              <Ruby text="読(よ)み上(あ)げモード" />
             </button>
           </div>
         </div>
       )}
 
-      <StepDots total={steps.length} current={clampedIndex} />
+      <StepTabs
+        items={steps.map((s) => ({ label: s.label, icon: s.icon }))}
+        current={clampedIndex}
+        onPick={setStepIndex}
+      />
 
       <StepComponent
         stepNumber={clampedIndex + 1}

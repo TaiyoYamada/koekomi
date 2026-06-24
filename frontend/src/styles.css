@@ -85,24 +85,44 @@ body {
   font-size: 17px;
 }
 
-/* ===== ステップ進み具合の点 ===== */
-.dots {
+/* ===== いつでも行き来できるステップタブ ===== */
+.step-tabs {
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 0;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-.dots .d {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #e5e7eb;
+.step-tabs::-webkit-scrollbar {
+  display: none;
 }
-.dots .d.active {
-  background: var(--primary);
+.step-tab {
+  flex: 1 0 auto;
+  min-width: 76px;
+  border: 3px solid #e5e7eb;
+  background: #fff;
+  border-radius: 16px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  font-weight: 800;
+  color: #9ca3af;
 }
-.dots .d.done {
-  background: var(--ok);
+.step-tab.active {
+  border-color: var(--primary);
+  background: #fff3e9;
+  color: var(--ink);
+}
+.step-tab .ic {
+  font-size: 26px;
+  line-height: 1;
+}
+.step-tab .lb {
+  font-size: 14px;
 }
 
 /* ===== ボタン ===== */
@@ -389,6 +409,30 @@ input[type='text']:focus {
 }
 .mode-pick input {
   margin-top: 4px;
+}
+
+/* ===== ふりがな（ルビ）===== */
+ruby {
+  ruby-position: over;
+  ruby-align: center;
+}
+rt {
+  font-size: 0.5em;
+  font-weight: 700;
+  color: inherit;
+  line-height: 1.1;
+  user-select: none;
+}
+/* ルビのぶん行間に余裕を持たせて、重なりを防ぐ */
+.step-title,
+.step-hint,
+.theater-bubble,
+.coma-no,
+.btn,
+.server-badge,
+.step-tab .lb,
+.banner {
+  line-height: 1.8;
 }
 
 .center {

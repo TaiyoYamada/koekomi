@@ -1,9 +1,12 @@
-/** 画面下に固定する「もどる / つぎへ」ボタン。 */
+import { Ruby } from './Furigana'
+import { NAV } from '../ui/labels'
+
+/** 画面下に固定する「もどる / つぎへ」ボタン。ラベルはふりがな記法。 */
 export function NavBar({
   onBack,
   onNext,
-  nextLabel = 'つぎへ →',
-  backLabel = '← もどる',
+  nextLabel = NAV.next,
+  backLabel = NAV.back,
   nextDisabled,
   hideBack,
 }: {
@@ -18,12 +21,12 @@ export function NavBar({
     <div className="nav">
       {!hideBack && (
         <button className="btn secondary" onClick={onBack} disabled={!onBack}>
-          {backLabel}
+          <Ruby text={backLabel} />
         </button>
       )}
       {onNext && (
         <button className="btn" onClick={onNext} disabled={nextDisabled}>
-          {nextLabel}
+          <Ruby text={nextLabel} />
         </button>
       )}
     </div>

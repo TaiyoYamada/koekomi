@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { NavBar } from '../components/NavBar'
+import { Ruby } from '../components/Furigana'
 import { findPanel, usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import { speak, stopSpeaking } from '../lib/speech'
@@ -76,7 +77,11 @@ export function Theater({ stepNumber, goBack }: StepProps) {
 
   return (
     <div className="theater">
-      <StepHead num={stepNumber} title="4コマげきじょうを見る" hint="さいしょから じゅんばんに さいせいするよ" />
+      <StepHead
+        num={stepNumber}
+        title="4コマ劇場(げきじょう)を見(み)る"
+        hint={<Ruby text="最初(さいしょ)から順番(じゅんばん)に再生(さいせい)するよ" />}
+      />
 
       <div className="theater-stage">
         {panel && <img src={panel.src} alt={panel.label} />}
@@ -101,11 +106,11 @@ export function Theater({ stepNumber, goBack }: StepProps) {
       <div className="card center">
         {!playing ? (
           <button className="btn big" onClick={playAll}>
-            ▶ さいしょから さいせい
+            <Ruby text="▶ 最初(さいしょ)から再生(さいせい)" />
           </button>
         ) : (
           <button className="btn stop big" onClick={stopAll}>
-            ■ とめる
+            <Ruby text="■ 止(と)める" />
           </button>
         )}
         <button
@@ -116,15 +121,17 @@ export function Theater({ stepNumber, goBack }: StepProps) {
             playOne(current)
           }}
         >
-          🔁 この コマだけ もういちど
+          <Ruby text="🔁 このコマだけもう一度(いちど)" />
         </button>
       </div>
 
       {mode === 'browser-tts' && (
-        <div className="banner warn">いまは「読み上げモード」です。端末の声で セリフを 読み上げます。</div>
+        <div className="banner warn">
+          <Ruby text="今(いま)は「読(よ)み上(あ)げモード」です。端末(たんまつ)の声(こえ)でセリフを読(よ)み上(あ)げます。" />
+        </div>
       )}
 
-      <NavBar onBack={goBack} backLabel="← なおす" hideBack={false} />
+      <NavBar onBack={goBack} backLabel="← 直(なお)す" hideBack={false} />
     </div>
   )
 }
