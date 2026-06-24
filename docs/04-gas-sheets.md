@@ -73,8 +73,16 @@ body: `{serverId, apiUrl?}`
 query/body: `serverId`
 → `assignedCount` を +1。
 
+### `POST ?action=presence`（在席ハートビート。Reactが定期送信）
+body/query: `serverId`, `deviceId`
+→ `presence` シート（1端末1行）の `lastSeen` を更新。各端末が使用中であることを知らせる。
+→ `list` は、TTL（既定90秒）以内に presence のあった端末数を **`activeCount`** として各サーバーに付けて返す。
+端末が離脱して presence が止まれば、TTL 経過で `activeCount` から自動的に外れる（＝負荷が自動で減る）。
+
 ### `POST ?action=release` / `?action=disable`（運用補助）
-→ 割り当て数を減らす / そのサーバーを無効化する。
+→ （旧）割り当て数を減らす / そのサーバーを無効化する。
+※ 負荷の数え方は `assignedCount`（増える一方）から `activeCount`（TTL在席）に移行済み。
+`presence` シートは初回アクセス時に自動作成される（`setup` 再実行は不要）。
 
 ---
 
@@ -97,7 +105,10 @@ curl -X POST "https://script.google.com/macros/s/XXXX/exec?action=register" \
 React は `list` 結果から次の条件で1台を選びます（`frontend/src/lib/registry.ts`）。
 
 1. `enabled === true`
-2. `assignedCount < capacity`（空きがある）
-3. `now - lastSeen <= VITE_SERVER_FRESH_SECONDS`（heartbeat が新しい）
-4. その中で **空き枠が多い順**、同点なら heartbeat が新しい順
-5. 候補を上から `/health` 確認し、最初に通った1台に割り当て → localStorage 保存
+2. `now - lastSeen <= VITE_SERVER_FRESH_SECONDS`（サーバーの heartbeat が新しい）
+3. その中で **`activeCount`（在席数）が少ない順**、同点なら heartbeat が新しい順
+4. 候補を上から `/health` 確認し、最初に通った1台に割り当て → localStorage 保存
+5. 割り当て後は端末が `presence` を定期送信し、`activeCount` に反映（離脱で TTL 自動減算）
+
+> **capacity はハード上限にしない**（満員でも候補から外さず、最も空いている台を選ぶ）。
+> これにより「全台が満員扱いで割り当て不能」が起きない。
