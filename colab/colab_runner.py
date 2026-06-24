@@ -62,13 +62,20 @@ def install_dependencies() -> None:
     stt = os.environ.get("TRANSCRIBE_BACKEND", "whisper").lower()
     if tts != "dummy" or stt != "dummy":
         print("   AI（Qwen3-TTS / Whisper）用ライブラリも入れます…（数分かかることがあります）")
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-q", "-r", "backend/requirements-ai.txt"],
-                check=True,
+        # 失敗が見えるよう -q は付けない（dummy になる原因の切り分け用）。
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", "backend/requirements-ai.txt"],
+        )
+        if result.returncode != 0:
+            print("   ⚠️ AI用ライブラリのインストールに失敗しました（このままだと dummy=ピー音になります）")
+            print("      上のpipエラーを確認してください。qwen-tts / openai-whisper が入っているか。")
+        else:
+            # 入ったか実際に import で確認する。
+            check = subprocess.run(
+                [sys.executable, "-c", "import torch, qwen_tts, whisper; print('AI deps OK')"],
             )
-        except subprocess.CalledProcessError as e:
-            print(f"   ⚠️ AI用ライブラリのインストールに失敗（dummyにフォールバックします）: {e}")
+            if check.returncode != 0:
+                print("   ⚠️ ライブラリは入ったが import に失敗しています（dummyになります）。上のエラーを確認。")
 
 
 def start_backend() -> threading.Thread:
