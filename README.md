@@ -118,7 +118,7 @@ npm run ngrok:back       # = ngrok http 8000
 # Colab の最後のセル（詳細は colab/start_backend.ipynb）
 import os
 os.environ['GAS_URL']      = userdata.get('GAS_URL')   # 直書きしない
-os.environ['TUNNEL']       = 'cloudflare'              # 本番は Cloudflare（無料・鍵不要・複数台OK）
+os.environ['TUNNEL']       = 'cloudflare'              # 本番は Cloudflare 固定
 os.environ['SERVER_ID']    = 'colab-1'
 os.environ['SERVER_COLOR'] = 'red'
 os.environ['SERVER_LABEL'] = '赤サーバー'
@@ -128,9 +128,8 @@ os.environ['CAPACITY']     = '2'        # 1台 1〜2人
 
 `colab_runner.py` が **依存インストール → FastAPI起動 → トンネル公開 → GAS登録 → heartbeat送信** まで自動で行います。
 
-**公開トンネルは2種類**（`TUNNEL` で切替。GASがURLを仲介するのでフロントは無修正）:
-- `cloudflare`（本番おすすめ）: 無料・アカウント/鍵不要・**複数台同時OK**・警告ページ無し。`cloudflared` を自動取得して `*.trycloudflare.com` を発行。
-- `ngrok`（手元の確認向き）: 1アカウント＝同時1トンネル。`NGROK_AUTHTOKEN` が必要。
+**本番は Cloudflare Quick Tunnel を使います**（`TUNNEL='cloudflare'`）。無料・アカウント/鍵不要で**複数台を同時公開**でき、警告ページも出ません。`cloudflared` を自動取得して `*.trycloudflare.com` を発行 → GAS に登録します。
+ngrok（`TUNNEL='ngrok'`）は1アカウント＝同時1トンネルのため、**開発中に手元の1台を iPad 確認する用途のみ**に使います。GASがURLを仲介するのでフロントはどちらでも無修正です。
 
 手順の全体は [docs/03-colab-backend.md](docs/03-colab-backend.md) と [docs/05-event-operations.md](docs/05-event-operations.md)。
 
@@ -215,14 +214,17 @@ ruff format --check . # フォーマット確認
 
 | 項目 | 採用 |
 |---|---|
-| フロントエンド | React + TypeScript（Vite） |
+| フロントエンド | React + TypeScript（Vite）／ Vercel ホスティング |
 | バックエンド | FastAPI |
 | AI実行環境 | Google Colab |
-| 開発中の外部公開 | ngrok |
+| 音声生成（TTS） | Qwen3-TTS（既定）／ dummy にも切替可 |
+| 文字起こし | Whisper ／ dummy にも切替可 |
+| 本番の外部公開（トンネル） | **Cloudflare Quick Tunnel**（無料・複数台同時・鍵不要） |
+| 開発時の外部公開 | ngrok（手元1台の iPad 確認用） |
 | Colabサーバー管理 | GAS + Google Sheets |
 | 端末ごとの接続先保存 | localStorage |
 | 外部DB | 使わない |
 
-- 文字起こし: 最初は **dummy**、`.env` の `TRANSCRIBE_BACKEND=whisper` で Whisper に差し替え（`adapters/whisper_transcriber.py`）。
-- 音声生成: 最初は **dummy**、`.env` の `TTS_BACKEND=qwen` で QwenTTS に差し替え（`adapters/qwen_tts.py`）。サービス層／adapter層に分離済み。
+- 音声生成: 既定は **Qwen3-TTS**（`adapters/qwen_tts.py`）。動作確認用に `TTS_BACKEND=dummy`（トーン音）へ即切替可。サービス層／adapter層に分離済み。
+- 文字起こし: 既定は **Whisper**（`adapters/whisper_transcriber.py`）。`TRANSCRIBE_BACKEND=dummy` でサンプル文に切替可。
 - 1つのColabでは `asyncio.Lock`（`backend/app/locks.py`）により**音声生成を1件ずつ順番に処理**します。

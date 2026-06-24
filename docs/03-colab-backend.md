@@ -127,26 +127,33 @@ os.environ['NGROK_AUTHTOKEN'] = userdata.get('NGROK_AUTHTOKEN')  # 必須
 
 ---
 
-## Whisper / QwenTTS への差し替え
+## 音声生成（Qwen3-TTS）・文字起こし（Whisper）
 
-ダミーから本実装に切り替えるには、Colab のセル2に追記:
+**既定で Qwen3-TTS（声クローン）+ Whisper が使われます。** Colab 側で特別な設定は不要で、
+`colab_runner.py` が `backend/requirements-ai.txt`（torch / qwen-tts / soundfile / openai-whisper）を
+自動でインストールします。**GPU ランタイム必須**（メニュー > ランタイム > ランタイムのタイプを変更 > GPU）。
+
+- **Qwen3-TTS**: Apache-2.0 のオープンモデル。参照音声3秒程度から声を真似て（zero-shot voice clone）
+  4コマのセリフを読み上げます。実装は `backend/app/adapters/qwen_tts.py`。
+  - モデル: `Qwen/Qwen3-TTS-12Hz-1.7B-Base`（`QWEN_TTS_MODEL` で変更可）
+  - 言語: `TTS_LANGUAGE`（既定 `Japanese`）
+  - `flash-attn` が無くても `sdpa` で動きます（`requirements-ai.txt` で flash-attn は任意）。
+- **Whisper**: `backend/app/adapters/whisper_transcriber.py`。`WHISPER_MODEL`（既定 `base`）で精度／速度を調整。
+
+### dummy で軽く動かしたいとき（GPU 無し・動作確認）
+
+セル2に追記すると、AI 依存のインストールもスキップしてトーン音＋サンプル文で動きます:
 
 ```python
-os.environ['TRANSCRIBE_BACKEND'] = 'whisper'   # 文字起こしを Whisper に
-os.environ['WHISPER_MODEL']      = 'base'
-os.environ['TTS_BACKEND']        = 'qwen'       # 音声生成を QwenTTS に
+os.environ['TTS_BACKEND']        = 'dummy'
+os.environ['TRANSCRIBE_BACKEND'] = 'dummy'
 ```
 
-そして:
+### フォールバックの安全装置
 
-- **Whisper**: `backend/requirements.txt` の `faster-whisper`（または `openai-whisper`）を有効化。
-  実装は `backend/app/adapters/whisper_transcriber.py`（すでにロード＆推論の雛形あり）。
-- **QwenTTS**: `backend/app/adapters/qwen_tts.py` の `_load()` と `synthesize()` を実装。
-  `transformers` / `torch` / `soundfile` などを requirements に追加。
-  GPU ランタイム（メニュー > ランタイム > ランタイムのタイプを変更 > GPU）を推奨。
-
-サービス層（`services/transcription.py`・`services/tts.py`）が環境変数で adapter を選ぶので、
-**route やフロントは一切変更不要**です。
+`services/tts.py`・`services/transcription.py` は、torch / qwen-tts / whisper が読み込めない、
+または GPU が無い場合に **自動で dummy にフォールバック** します（サーバーは落ちません）。
+adapter を環境変数で選ぶ構造なので、**route やフロントは一切変更不要**です。
 
 ---
 

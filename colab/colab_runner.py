@@ -56,6 +56,19 @@ def install_dependencies() -> None:
         [sys.executable, "-m", "pip", "install", "-q", "-r", "backend/requirements.txt"],
         check=True,
     )
+    # dummy 以外（Qwen3-TTS / Whisper）を使うなら AI 用の重い依存も入れる。
+    # 失敗してもサーバーは起動する（service 層が dummy にフォールバックする）。
+    tts = os.environ.get("TTS_BACKEND", "qwen").lower()
+    stt = os.environ.get("TRANSCRIBE_BACKEND", "whisper").lower()
+    if tts != "dummy" or stt != "dummy":
+        print("   AI（Qwen3-TTS / Whisper）用ライブラリも入れます…（数分かかることがあります）")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-q", "-r", "backend/requirements-ai.txt"],
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"   ⚠️ AI用ライブラリのインストールに失敗（dummyにフォールバックします）: {e}")
 
 
 def start_backend() -> threading.Thread:
