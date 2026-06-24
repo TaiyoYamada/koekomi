@@ -1,0 +1,17 @@
+# ===== 必須（ダミー実装でもこれだけで動く）=====
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pyngrok==7.2.0
+requests==2.32.3
+
+# ===== Whisper を本実装にするとき（任意。コメントを外す）=====
+# openai-whisper==20231117
+#   または faster-whisper==1.0.3
+# faster-whisper==1.0.3
+
+# ===== QwenTTS を本実装にするとき（任意。環境に合わせて調整）=====
+# transformers>=4.44
+# torch
+# soundfile
+# ※ QwenTTS の実体は backend/app/adapters/qwen_tts.py に実装する。

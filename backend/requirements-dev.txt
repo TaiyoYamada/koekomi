@@ -1,0 +1,6 @@
+# 開発・テスト用（本番の requirements.txt とは分離）
+-r requirements.txt
+
+pytest==8.3.3
+httpx==0.27.2        # FastAPI TestClient が内部で使う
+ruff==0.6.9          # lint + format
