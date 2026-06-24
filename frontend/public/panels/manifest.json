@@ -1,0 +1,102 @@
+[
+  {
+    "id": "panel-01",
+    "src": "/panels/panel-01.svg",
+    "label": "いぬ"
+  },
+  {
+    "id": "panel-02",
+    "src": "/panels/panel-02.svg",
+    "label": "ねこ"
+  },
+  {
+    "id": "panel-03",
+    "src": "/panels/panel-03.svg",
+    "label": "うさぎ"
+  },
+  {
+    "id": "panel-04",
+    "src": "/panels/panel-04.svg",
+    "label": "くま"
+  },
+  {
+    "id": "panel-05",
+    "src": "/panels/panel-05.svg",
+    "label": "きつね"
+  },
+  {
+    "id": "panel-06",
+    "src": "/panels/panel-06.svg",
+    "label": "かえる"
+  },
+  {
+    "id": "panel-07",
+    "src": "/panels/panel-07.svg",
+    "label": "ペンギン"
+  },
+  {
+    "id": "panel-08",
+    "src": "/panels/panel-08.svg",
+    "label": "ライオン"
+  },
+  {
+    "id": "panel-09",
+    "src": "/panels/panel-09.svg",
+    "label": "かめ"
+  },
+  {
+    "id": "panel-10",
+    "src": "/panels/panel-10.svg",
+    "label": "ひよこ"
+  },
+  {
+    "id": "panel-11",
+    "src": "/panels/panel-11.svg",
+    "label": "き"
+  },
+  {
+    "id": "panel-12",
+    "src": "/panels/panel-12.svg",
+    "label": "いえ"
+  },
+  {
+    "id": "panel-13",
+    "src": "/panels/panel-13.svg",
+    "label": "ロケット"
+  },
+  {
+    "id": "panel-14",
+    "src": "/panels/panel-14.svg",
+    "label": "ほし"
+  },
+  {
+    "id": "panel-15",
+    "src": "/panels/panel-15.svg",
+    "label": "にじ"
+  },
+  {
+    "id": "panel-16",
+    "src": "/panels/panel-16.svg",
+    "label": "りんご"
+  },
+  {
+    "id": "panel-17",
+    "src": "/panels/panel-17.svg",
+    "label": "ふうせん"
+  },
+  {
+    "id": "panel-18",
+    "src": "/panels/panel-18.svg",
+    "label": "くるま"
+  },
+  {
+    "id": "panel-19",
+    "src": "/panels/panel-19.svg",
+    "label": "ボール"
+  },
+  {
+    "id": "panel-20",
+    "src": "/panels/panel-20.svg",
+    "label": "プレゼント"
+  }
+]
