@@ -34,7 +34,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="声つき4コマ劇場 API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="コエコミ API", version="1.0.0", lifespan=lifespan)
 
 # CORS: React フロント（固定URL / ngrok / localhost）からアクセスできるように。
 app.add_middleware(
