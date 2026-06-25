@@ -1,6 +1,6 @@
 # コエコミ — 声でつくる4コマ劇場 🎤📖
 
-> アプリ名: **コエコミ**（声 × コミック）。リポジトリ名は `voice-comic-theater`。
+> アプリ名: **コエコミ**（声 × コミック）。リポジトリ名・フォルダ名は `koekomi`。
 
 小学生向けイベント用 Web アプリ。
 iPad でアプリを開き、**4コマ漫画を作り → 決まった文を読んで自分の声を録音 → AI音声を生成 → 4コマ劇場として再生**するまでを行えます。
@@ -20,7 +20,7 @@ flowchart TD
 ## 構成（monorepo）
 
 ```
-voice-comic-theater/
+koekomi/
 ├── frontend/        React + TypeScript（Vite）。子ども用UI＋先生用 /admin
 │   ├── src/
 │   │   ├── steps/       各画面（編集 / 録音 / AI声 / 劇場）。サイドバーで自由移動

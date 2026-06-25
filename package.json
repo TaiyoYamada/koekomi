@@ -1,8 +1,8 @@
 {
-  "name": "voice-comic-theater",
+  "name": "koekomi",
   "version": "1.0.0",
   "private": true,
-  "description": "音声AIでつくる！声つき4コマ劇場 — 小学生向けイベント用 Web アプリ (monorepo)",
+  "description": "コエコミ — 声でつくる4コマ劇場。小学生向けイベント用 Web アプリ (monorepo)",
   "workspaces": [
     "frontend"
   ],

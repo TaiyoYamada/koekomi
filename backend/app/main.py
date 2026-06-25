@@ -53,4 +53,4 @@ app.include_router(cleanup.router)
 
 @app.get("/")
 async def root() -> dict:
-    return {"app": "voice-comic-theater", "see": "/health"}
+    return {"app": "koekomi", "see": "/health"}

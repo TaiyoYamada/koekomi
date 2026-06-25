@@ -1,5 +1,5 @@
 /**
- * 声つき4コマ劇場 — 簡易サーバーレジストリ (Google Apps Script)
+ * コエコミ — 簡易サーバーレジストリ (Google Apps Script)
  *
  * Google Sheets を「いま使えるColabサーバー一覧」として使う。
  * Colab 起動コードから register / heartbeat され、React から list / assign される。
