@@ -70,11 +70,6 @@ export const MAX_LINES_PER_COMA = 4
 /** コマ数（固定）。 */
 export const COMA_COUNT = 4
 
-/** /transcribe のレスポンス。 */
-export interface TranscribeResponse {
-  text: string
-}
-
 /** /generate-comic-voices のレスポンス。 */
 export interface GenerateVoicesResponse {
   /** 各コマの音声ファイル名（/files/{filename} で取得できる）。 */

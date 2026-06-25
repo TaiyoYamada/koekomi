@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useApp } from './state'
 import { ensureAssignment, assignFreshServer, sendPresence } from './lib/registry'
 import { ServerBadge } from './components/ServerBadge'
@@ -9,7 +8,6 @@ import { SECTIONS, type SectionMeta } from './ui/labels'
 import { Home } from './steps/Home'
 import { Editor } from './steps/Editor'
 import { Record } from './steps/Record'
-import { Transcribe } from './steps/Transcribe'
 import { GenerateVoices } from './steps/GenerateVoices'
 import { SelfRecordComas } from './steps/SelfRecordComas'
 import { Theater } from './steps/Theater'
@@ -30,17 +28,13 @@ function sectionsForMode(mode: VoiceMode): Section[] {
   return [
     editor,
     { meta: SECTIONS.record, Comp: Record },
-    { meta: SECTIONS.transcribe, Comp: Transcribe },
     { meta: SECTIONS.generate, Comp: GenerateVoices },
     theater,
   ]
 }
 
 export function App() {
-  const navigate = useNavigate()
-  const { assignment, setAssignment, mode, setMode } = useApp()
-  const [started, setStarted] = useState(false)
-  const [active, setActive] = useState('editor')
+  const { started, setStarted, active, setActive, assignment, setAssignment, mode, setMode } = useApp()
   const [connecting, setConnecting] = useState(false)
   const [connError, setConnError] = useState<string | null>(null)
 
@@ -116,11 +110,6 @@ export function App() {
 
         <ActiveComp />
       </main>
-
-      {/* 子どもが触りにくい右上の隠し導線（先生メニュー） */}
-      <button className="gear" aria-label="先生用せってい" onClick={() => navigate('/admin')}>
-        ⚙
-      </button>
     </div>
   )
 }

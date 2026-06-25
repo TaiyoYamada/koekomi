@@ -4,6 +4,7 @@ import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
 import { useApp } from '../state'
 import { isRecordingSupported, startRecording, type ActiveRecorder } from '../lib/recorder'
+import { REFERENCE_SCRIPT } from '../lib/script'
 
 function fmt(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
@@ -54,8 +55,12 @@ export function Record() {
     <div>
       <StepHead
         title="声(こえ)を録音(ろくおん)する"
-        hint={<Ruby text="「こんにちは、私(わたし)の名前(なまえ)は○○です」のように話(はな)してみてね" />}
+        hint={<Ruby text="下(した)の文(ぶん)を こえに出(だ)して 読(よ)んでね。その声(こえ)でAIが しゃべるよ。" />}
       />
+
+      <div className="card script-card">
+        <p className="script-text">{REFERENCE_SCRIPT}</p>
+      </div>
 
       {!supported && (
         <div className="banner warn">
@@ -84,7 +89,7 @@ export function Record() {
         ) : (
           <button className="btn stop big icon-btn" onClick={onStop}>
             <Icon name="stop" size={24} />
-            <Ruby text="ここをおして 終(お)わる" />
+            <Ruby text="ここを押(お)して 終(お)わる" />
           </button>
         )}
 
@@ -100,7 +105,7 @@ export function Record() {
 
       <div className="card">
         <p className="step-hint" style={{ marginTop: 0 }}>
-          <Ruby text="録音(ろくおん)できないときは、おうちの人(ひと)や先生(せんせい)に聞(き)いて音声(おんせい)ファイルを選(えら)んでね（保険(ほけん)）。" />
+          <Ruby text="録音(ろくおん)できないときは、おうちの人(ひと)や先生(せんせい)に聞(き)いて音声(おんせい)ファイルを選(えら)んでね。" />
         </p>
         <input type="file" accept="audio/*" onChange={onUpload} />
       </div>

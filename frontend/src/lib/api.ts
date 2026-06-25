@@ -1,6 +1,6 @@
 // FastAPI バックエンド（Colab + ngrok）との通信。
 
-import type { GenerateVoicesResponse, TranscribeResponse } from '../types'
+import type { GenerateVoicesResponse } from '../types'
 
 /** 末尾スラッシュを除いた apiUrl を返す。 */
 function base(apiUrl: string): string {
@@ -31,19 +31,6 @@ export async function checkHealth(apiUrl: string, timeoutMs = 5000): Promise<boo
 }
 
 const commonHeaders = { 'ngrok-skip-browser-warning': 'true' }
-
-/** 録音音声を送って文字起こしする。 */
-export async function transcribe(apiUrl: string, audio: Blob): Promise<TranscribeResponse> {
-  const fd = new FormData()
-  fd.append('audio', audio, 'recording.webm')
-  const res = await fetch(`${base(apiUrl)}/transcribe`, {
-    method: 'POST',
-    headers: commonHeaders,
-    body: fd,
-  })
-  if (!res.ok) throw new Error(`文字起こしに失敗しました (HTTP ${res.status})`)
-  return (await res.json()) as TranscribeResponse
-}
 
 /**
  * セリフぶんの AI 音声を生成する。

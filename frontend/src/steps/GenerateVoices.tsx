@@ -5,10 +5,11 @@ import { Icon } from '../components/icons'
 import { useApp } from '../state'
 import { flattenLines } from '../lib/comic'
 import { fileUrl, generateComicVoices } from '../lib/api'
+import { REFERENCE_SCRIPT } from '../lib/script'
 
 /** AIで声を作る（全コマの全セリフぶんを生成）。 */
 export function GenerateVoices() {
-  const { assignment, recordingBlob, referenceText, comas, setLineVoice } = useApp()
+  const { assignment, recordingBlob, comas, setLineVoice } = useApp()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,7 +27,7 @@ export function GenerateVoices() {
     try {
       const res = await generateComicVoices(assignment.apiUrl, {
         audio: recordingBlob,
-        referenceText,
+        referenceText: REFERENCE_SCRIPT,
         lines: targets.map((t) => t.line.text),
       })
       // 返ってきたファイル名は targets と同じ順番。idで対応づける。
@@ -50,12 +51,12 @@ export function GenerateVoices() {
 
       {!recordingBlob && (
         <div className="banner warn">
-          <Ruby text="さきに「録音(ろくおん)」で声(こえ)をろくおんしてね。" />
+          <Ruby text="先(さき)に「録音(ろくおん)」で声(こえ)を録音(ろくおん)してね。" />
         </div>
       )}
       {targets.length === 0 && (
         <div className="banner warn">
-          <Ruby text="「へんしゅう」でセリフを書(か)いてね。" />
+          <Ruby text="「編集(へんしゅう)」でセリフを書(か)いてね。" />
         </div>
       )}
       {error && (
@@ -99,7 +100,7 @@ export function GenerateVoices() {
               .map((l) => (
                 <div key={l.id} style={{ marginBottom: 12 }}>
                   <div className="coma-no">
-                    <Ruby text={`${ci + 1}まい目(め)：`} />
+                    <Ruby text={`${ci + 1}枚目(まいめ)：`} />
                     {l.text}
                   </div>
                   {l.voiceUrl && <audio src={l.voiceUrl} controls style={{ width: '100%' }} />}

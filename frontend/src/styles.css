@@ -280,6 +280,21 @@ input[type='text']:focus {
   margin-bottom: 16px;
 }
 
+/* 録音で読んでもらう固定スクリプト（大きく・読みやすく） */
+.script-card {
+  background: #fff7ed;
+  border: 3px dashed var(--primary);
+}
+.script-text {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+  color: #3a2a1a;
+  text-align: center;
+}
+
 /* ===== 4コマ劇場プレイヤー ===== */
 .theater {
   text-align: center;

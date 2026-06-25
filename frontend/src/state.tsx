@@ -21,6 +21,12 @@ function moveItem<T>(arr: T[], index: number, dir: -1 | 1): T[] {
 }
 
 export interface AppState {
+  // 画面ナビゲーション（プライバシー/設定へ移動して戻っても保持する）
+  started: boolean
+  setStarted: (v: boolean) => void
+  active: string
+  setActive: (key: string) => void
+
   // 接続先
   assignment: Assignment | null
   setAssignment: (a: Assignment | null) => void
@@ -46,21 +52,18 @@ export interface AppState {
   recordingBlob: Blob | null
   recordingUrl: string | null
   setRecording: (blob: Blob | null) => void
-
-  // 文字起こし結果（編集可能・TTSの参照テキスト）
-  referenceText: string
-  setReferenceText: (t: string) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
+  const [started, setStarted] = useState(false)
+  const [active, setActive] = useState('editor')
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [mode, setModeState] = useState<VoiceMode>(() => loadMode())
   const [comas, setComas] = useState<Coma[]>(() => emptyComas())
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null)
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
-  const [referenceText, setReferenceText] = useState('')
 
   function mapComa(comaIndex: number, fn: (c: Coma) => Coma) {
     setComas((prev) => prev.map((c, i) => (i === comaIndex ? fn(c) : c)))
@@ -68,6 +71,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppState>(
     () => ({
+      started,
+      setStarted,
+      active,
+      setActive,
       assignment,
       setAssignment,
       mode,
@@ -118,10 +125,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           return blob ? URL.createObjectURL(blob) : null
         })
       },
-      referenceText,
-      setReferenceText,
     }),
-    [assignment, mode, comas, recordingBlob, recordingUrl, referenceText],
+    [started, active, assignment, mode, comas, recordingBlob, recordingUrl],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
