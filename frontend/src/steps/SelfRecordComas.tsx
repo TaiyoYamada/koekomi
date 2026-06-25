@@ -50,7 +50,7 @@ export function SelfRecordComas() {
             <div className="line-row" style={{ margin: 0, boxShadow: 'none', padding: 0 }}>
               {panel && <img src={panel.src} alt={panel.label} />}
               <div className="coma-no">
-                <Ruby text={`${ci + 1}まい目(め)`} />
+                <Ruby text={`${ci + 1}枚目(まいめ)`} />
               </div>
             </div>
             {coma.lines

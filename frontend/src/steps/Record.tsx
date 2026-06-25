@@ -55,7 +55,7 @@ export function Record() {
     <div>
       <StepHead
         title="声(こえ)を録音(ろくおん)する"
-        hint={<Ruby text="下(した)の文(ぶん)を こえに出(だ)して 読(よ)んでね。その声(こえ)でAIが しゃべるよ。" />}
+        hint={<Ruby text="下(した)の文(ぶん)を 声(こえ)に出(だ)して 読(よ)んでね。その声(こえ)でAIが 喋(しゃべ)るよ。" />}
       />
 
       <div className="card script-card">

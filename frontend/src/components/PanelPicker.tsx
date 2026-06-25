@@ -17,7 +17,7 @@ export function PanelPicker({
       <div className="picker-card" onClick={(e) => e.stopPropagation()}>
         <div className="picker-head">
           <strong>
-            <Ruby text="写真(しゃしん)をえらぶ" />
+            <Ruby text="写真(しゃしん)を選(えら)ぶ" />
           </strong>
           <button className="btn secondary" onClick={onClose}>
             <Ruby text="閉(と)じる" />

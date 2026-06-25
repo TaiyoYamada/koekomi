@@ -23,7 +23,7 @@ export function AdminPanel() {
 
   async function doHealth() {
     if (!assignment) return
-    setHealth('かくにん中…')
+    setHealth('確認中…')
     const ok = await checkHealth(assignment.apiUrl)
     setHealth(ok ? '✅ つながっています' : '❌ つながりません')
   }
@@ -52,12 +52,12 @@ export function AdminPanel() {
   return (
     <div className="admin">
       <button className="btn secondary" onClick={() => navigate('/')}>
-        ← アプリにもどる
+        ← アプリに戻る
       </button>
-      <h1>先生・TA用 せってい</h1>
+      <h1>先生・TA用 設定</h1>
 
       <div className="card">
-        <h3>いまの接続先</h3>
+        <h3>今の接続先</h3>
         {assignment ? (
           <ul>
             <li>serverId: <code>{assignment.serverId}</code></li>
@@ -78,7 +78,7 @@ export function AdminPanel() {
         )}
         <div className="row">
           <button className="btn" onClick={doHealth} disabled={!assignment}>
-            /health 接続かくにん
+            /health 接続確認
           </button>
           <span className="kv">{health}</span>
         </div>

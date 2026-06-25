@@ -16,8 +16,8 @@ export function Editor() {
   return (
     <div>
       <StepHead
-        title="へんしゅう"
-        hint={<Ruby text="写真(しゃしん)をえらんで、セリフを書(か)こう。順番(じゅんばん)も変(か)えられるよ。" />}
+        title="編集(へんしゅう)"
+        hint={<Ruby text="写真(しゃしん)を選(えら)んで、セリフを書(か)こう。順番(じゅんばん)も変(か)えられるよ。" />}
       />
 
       {comas.map((coma, ci) => {
@@ -26,7 +26,7 @@ export function Editor() {
           <div className="coma-card" key={ci}>
             <div className="coma-card-head">
               <span className="coma-label">
-                <Ruby text={`${ci + 1}まい目(め)`} />
+                <Ruby text={`${ci + 1}枚目(まいめ)`} />
               </span>
               <div className="reorder">
                 <button className="mini" onClick={() => moveComa(ci, -1)} disabled={ci === 0} aria-label="コマを上へ">
@@ -48,7 +48,7 @@ export function Editor() {
                 <img src={panel.src} alt={panel.label} />
               ) : (
                 <span className="coma-photo-empty">
-                  <Ruby text="写真(しゃしん)をえらぶ" />
+                  <Ruby text="写真(しゃしん)を選(えら)ぶ" />
                 </span>
               )}
             </button>
@@ -100,7 +100,7 @@ export function Editor() {
                   text={
                     coma.lines.length >= MAX_LINES_PER_COMA
                       ? 'セリフは4つまで'
-                      : '＋ セリフをふやす'
+                      : '＋ セリフを増(ふ)やす'
                   }
                 />
               </button>

@@ -6,7 +6,7 @@ export function Privacy() {
   return (
     <div className="admin">
       <button className="btn secondary" onClick={() => navigate('/')}>
-        ← アプリにもどる
+        ← アプリに戻る
       </button>
       <h1>プライバシーポリシー</h1>
 

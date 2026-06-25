@@ -127,7 +127,7 @@ export function Theater() {
       <div className="card center">
         <div className="player-row">
           <button className="btn secondary" onClick={() => go(current - 1)} disabled={current === 0}>
-            <Ruby text="◀ まえ" />
+            <Ruby text="◀ 前(まえ)" />
           </button>
           {!playing ? (
             <button className="btn icon-btn" onClick={() => play(current)}>
@@ -145,7 +145,7 @@ export function Theater() {
             onClick={() => go(current + 1)}
             disabled={current === comas.length - 1}
           >
-            <Ruby text="つぎ ▶" />
+            <Ruby text="次(つぎ) ▶" />
           </button>
         </div>
 
