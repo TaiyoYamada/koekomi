@@ -295,6 +295,17 @@ input[type='text']:focus {
   text-align: center;
 }
 
+/* 録音直後の「お試し」（自分のAI声で好きな言葉を鳴らす） */
+.tryout {
+  background: #eef7ff;
+  border: 3px dashed #22c1c3;
+}
+.tryout-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ===== 4コマ劇場プレイヤー ===== */
 .theater {
   text-align: center;
@@ -698,11 +709,10 @@ rt {
 }
 .player-options {
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
   align-items: center;
   margin-top: 14px;
-  flex-wrap: wrap;
 }
 .opt {
   display: flex;
@@ -710,6 +720,16 @@ rt {
   gap: 8px;
   font-weight: 800;
 }
+/* 自動でめくるトグル（押しやすく目立たせる） */
+.auto-toggle {
+  cursor: pointer;
+  font-size: 17px;
+}
+.auto-toggle input {
+  width: 22px;
+  height: 22px;
+}
+/* 間の調整は「自動でめくる」がオンのときだけ表示する */
 .gap-val {
   min-width: 52px;
   display: inline-block;

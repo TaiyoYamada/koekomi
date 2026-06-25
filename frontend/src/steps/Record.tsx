@@ -5,6 +5,7 @@ import { Icon } from '../components/icons'
 import { useApp } from '../state'
 import { isRecordingSupported, startRecording, type ActiveRecorder } from '../lib/recorder'
 import { REFERENCE_SCRIPT } from '../lib/script'
+import { VoiceTryout } from '../components/VoiceTryout'
 
 function fmt(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
@@ -102,6 +103,8 @@ export function Record() {
           </div>
         )}
       </div>
+
+      <VoiceTryout />
 
       <div className="card">
         <p className="step-hint" style={{ marginTop: 0 }}>
