@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routes import cleanup, files, generate, health, transcribe
+from .routes import cleanup, files, generate, health
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("vct")
@@ -19,24 +19,18 @@ log = logging.getLogger("vct")
 async def lifespan(_: FastAPI):
     settings.ensure_dirs()
     # 起動時にバックエンドを解決しておく（フォールバック有無を起動ログに出す）。
-    from .services.transcription import get_transcriber
     from .services.tts import get_tts
 
-    stt = get_transcriber().name
     tts = get_tts().name
     log.info(
-        "起動: server=%s color=%s transcribe=%s(→%s) tts=%s(→%s)",
+        "起動: server=%s color=%s tts=%s(→%s)",
         settings.server_id,
         settings.server_color,
-        settings.transcribe_backend,
-        stt,
         settings.tts_backend,
         tts,
     )
     if tts == "dummy" and settings.tts_backend != "dummy":
         log.warning("⚠️ TTS が dummy で動作中（Qwen3-TTS が読み込めていません）")
-    if stt == "dummy" and settings.transcribe_backend != "dummy":
-        log.warning("⚠️ 文字起こしが dummy で動作中（Whisper が読み込めていません）")
     yield
 
 
@@ -52,7 +46,6 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
-app.include_router(transcribe.router)
 app.include_router(generate.router)
 app.include_router(files.router)
 app.include_router(cleanup.router)

@@ -56,23 +56,22 @@ def install_dependencies() -> None:
         [sys.executable, "-m", "pip", "install", "-q", "-r", "backend/requirements.txt"],
         check=True,
     )
-    # dummy 以外（Qwen3-TTS / Whisper）を使うなら AI 用の重い依存も入れる。
+    # dummy 以外（Qwen3-TTS）を使うなら AI 用の重い依存も入れる。
     # 失敗してもサーバーは起動する（service 層が dummy にフォールバックする）。
     tts = os.environ.get("TTS_BACKEND", "qwen").lower()
-    stt = os.environ.get("TRANSCRIBE_BACKEND", "whisper").lower()
-    if tts != "dummy" or stt != "dummy":
-        print("   AI（Qwen3-TTS / Whisper）用ライブラリも入れます…（数分かかることがあります）")
+    if tts != "dummy":
+        print("   AI（Qwen3-TTS）用ライブラリも入れます…（数分かかることがあります）")
         # 失敗が見えるよう -q は付けない（dummy になる原因の切り分け用）。
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", "-r", "backend/requirements-ai.txt"],
         )
         if result.returncode != 0:
             print("   ⚠️ AI用ライブラリのインストールに失敗しました（このままだと dummy=ピー音になります）")
-            print("      上のpipエラーを確認してください。qwen-tts / openai-whisper が入っているか。")
+            print("      上のpipエラーを確認してください。qwen-tts が入っているか。")
         else:
             # 入ったか実際に import で確認する。
             check = subprocess.run(
-                [sys.executable, "-c", "import torch, qwen_tts, whisper; print('AI deps OK')"],
+                [sys.executable, "-c", "import torch, qwen_tts; print('AI deps OK')"],
             )
             if check.returncode != 0:
                 print("   ⚠️ ライブラリは入ったが import に失敗しています（dummyになります）。上のエラーを確認。")

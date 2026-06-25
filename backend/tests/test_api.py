@@ -11,20 +11,8 @@ def test_health(client):
     body = res.json()
     assert body["status"] == "ok"
     # /health は「設定された」バックエンド名を返す（実効値ではなく構成値）。
-    assert body["transcribeBackend"] == settings.transcribe_backend
     assert body["ttsBackend"] == settings.tts_backend
     assert body["busy"] is False
-
-
-def test_transcribe_returns_text(client, fake_audio):
-    res = client.post(
-        "/transcribe",
-        files={"audio": ("rec.webm", fake_audio, "audio/webm")},
-    )
-    assert res.status_code == 200
-    text = res.json()["text"]
-    assert isinstance(text, str)
-    assert len(text) > 0
 
 
 def test_generate_comic_voices_makes_one_file_per_line(client, fake_audio):

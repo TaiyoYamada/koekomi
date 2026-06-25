@@ -1,5 +1,5 @@
 # ===== AI バックエンド用の重い依存（GPU 推奨）=====
-# TTS_BACKEND=qwen / TRANSCRIBE_BACKEND=whisper のとき必要。
+# TTS_BACKEND=qwen のとき必要。
 # Colab では requirements.txt の後にこれを入れる（colab_runner が自動でやる）。
 #
 #   pip install -r backend/requirements-ai.txt
@@ -14,10 +14,6 @@ soundfile
 # 音声生成: Qwen3-TTS（声クローン対応・Apache-2.0）
 #   https://github.com/QwenLM/Qwen3-TTS
 qwen-tts
-
-# 文字起こし: Whisper
-openai-whisper
-#   ↑ 速度重視なら faster-whisper に差し替え可（adapters/whisper_transcriber.py を調整）
 
 # 任意の高速化（ビルドに時間がかかる/失敗することがある。無くても sdpa で動く）
 # flash-attn

@@ -1,7 +1,6 @@
 """adapter 層のインターフェース定義。
 
-実装を差し替えやすいように、文字起こし・TTS をそれぞれ Protocol で抽象化する。
-- Transcriber: 録音音声 → テキスト
+実装を差し替えやすいように、TTS を Protocol で抽象化する。
 - TTSAdapter : 参照音声＋参照テキスト＋セリフ → 音声ファイル
 """
 
@@ -9,15 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Protocol, runtime_checkable
-
-
-@runtime_checkable
-class Transcriber(Protocol):
-    name: str
-
-    async def transcribe(self, wav_path: Path) -> str:
-        """wav を文字起こししてテキストを返す。"""
-        ...
 
 
 @runtime_checkable

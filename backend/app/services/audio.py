@@ -23,7 +23,7 @@ def save_upload(data: bytes, suffix: str = ".bin") -> Path:
 
 def convert_to_wav(src: Path) -> Path:
     """
-    任意の音声を Whisper / TTS が扱いやすい wav (16kHz mono) に変換する。
+    任意の音声を TTS が扱いやすい wav (16kHz mono) に変換する。
 
     ffmpeg が無い・失敗した場合は元ファイルをそのまま返す（フローを止めない）。
     """

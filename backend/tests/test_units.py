@@ -5,9 +5,7 @@ from __future__ import annotations
 import wave
 from pathlib import Path
 
-from app.adapters.dummy_transcriber import DummyTranscriber
 from app.adapters.dummy_tts import DummyTTS
-from app.services.transcription import get_transcriber
 from app.services.tts import get_tts
 
 
@@ -15,12 +13,6 @@ def run_async(coro):
     import asyncio
 
     return asyncio.run(coro)
-
-
-def test_dummy_transcriber_returns_nonempty():
-    t = DummyTranscriber()
-    text = run_async(t.transcribe(Path("whatever.wav")))
-    assert isinstance(text, str) and len(text) > 0
 
 
 def test_dummy_tts_writes_valid_wav(tmp_path: Path):
@@ -62,7 +54,6 @@ def test_dummy_tts_varies_length_with_text(tmp_path: Path):
 
 
 def test_service_falls_back_to_dummy_without_ai_deps():
-    # 既定は whisper / qwen だが、torch・qwen-tts・whisper が無い環境
+    # 既定は qwen だが、torch・qwen-tts が無い環境
     # （CI やローカル開発）では dummy にフォールバックして落ちないこと。
-    assert get_transcriber().name == "dummy"
     assert get_tts().name == "dummy"
