@@ -25,9 +25,10 @@ function sectionsForMode(mode: VoiceMode): Section[] {
   if (mode === 'self-record')
     return [editor, { meta: SECTIONS.record, Comp: SelfRecordComas }, theater]
   if (mode === 'browser-tts') return [editor, theater]
+  // AIモードは「まず声を録る→お試し」から始めたいので録音を先頭にする。
   return [
-    editor,
     { meta: SECTIONS.record, Comp: Record },
+    editor,
     { meta: SECTIONS.generate, Comp: GenerateVoices },
     theater,
   ]
@@ -79,7 +80,16 @@ export function App() {
   const activeSection = sections.find((s) => s.meta.key === active) ?? sections[0]
   const ActiveComp = activeSection.Comp
 
-  if (!started) return <Home onStart={() => setStarted(true)} />
+  if (!started)
+    return (
+      <Home
+        onStart={() => {
+          // モードごとの先頭セクションに着地する（AI=録音 / それ以外=編集）。
+          setActive(sections[0].meta.key)
+          setStarted(true)
+        }}
+      />
+    )
 
   return (
     <div className="layout">

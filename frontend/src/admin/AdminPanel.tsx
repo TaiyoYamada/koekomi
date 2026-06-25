@@ -13,10 +13,10 @@ const MODE_LABELS: Record<VoiceMode, string> = {
   'browser-tts': 'ブラウザ読み上げモード（フォールバック）',
 }
 
-/** 先生・TA 用の管理画面。認証なしだが、子どもが触りにくい /admin に置く。 */
+/** 先生用の管理画面。認証なしだが、子どもが触りにくい /admin に置く。 */
 export function AdminPanel() {
   const navigate = useNavigate()
-  const { assignment, setAssignment, mode, setMode } = useApp()
+  const { assignment, setAssignment, mode, setMode, resetWork } = useApp()
   const [health, setHealth] = useState<string>('—')
   const [busy, setBusy] = useState(false)
   const saved = loadAssignment()
@@ -47,6 +47,12 @@ export function AdminPanel() {
     setHealth('—')
   }
 
+  function doResetWork() {
+    if (!confirm('いまの作品（写真・セリフ・録音）を消して、最初からにします。よろしいですか？')) return
+    resetWork()
+    alert('リセットしました。アプリに戻るとタイトルから始められます。')
+  }
+
   const c = assignment ? colorDef(assignment.color) : null
 
   return (
@@ -54,7 +60,7 @@ export function AdminPanel() {
       <button className="btn secondary" onClick={() => navigate('/')}>
         ← アプリに戻る
       </button>
-      <h1>先生・TA用 設定</h1>
+      <h1>先生用設定</h1>
 
       <div className="card">
         <h3>今の接続先</h3>
@@ -90,6 +96,16 @@ export function AdminPanel() {
             接続先リセット
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <h3>つぎの子へ（作品リセット）</h3>
+        <p className="step-hint" style={{ marginTop: 0 }}>
+          写真・セリフ・録音をすべて消して、タイトルからやり直せるようにします。接続先は保持されます。
+        </p>
+        <button className="btn stop" onClick={doResetWork}>
+          作品をリセット
+        </button>
       </div>
 
       <div className="card">

@@ -35,6 +35,12 @@ export interface AppState {
   mode: VoiceMode
   setMode: (m: VoiceMode) => void
 
+  // 劇場の再生設定（セクションを移動して戻っても保持する）
+  autoPlay: boolean
+  setAutoPlay: (v: boolean) => void
+  gapSec: number
+  setGapSec: (n: number) => void
+
   // 作品データ（コマ＝写真＋セリフ複数）
   comas: Coma[]
   setComaPanel: (comaIndex: number, panelId: string) => void
@@ -52,6 +58,13 @@ export interface AppState {
   recordingBlob: Blob | null
   recordingUrl: string | null
   setRecording: (blob: Blob | null) => void
+
+  // お試し音声のキャッシュ（セリフ文→音声URL）。メモリ保持。録音が変わると自動で空にする。
+  tryoutVoices: Record<string, string>
+  setTryoutVoice: (phrase: string, url: string) => void
+
+  /** 作品データ（コマ・録音・お試し）を消してタイトルに戻す。イベントで次の子に渡すとき用。 */
+  resetWork: () => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -64,6 +77,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [comas, setComas] = useState<Coma[]>(() => emptyComas())
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null)
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
+  const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
+  const [autoPlay, setAutoPlay] = useState(false)
+  const [gapSec, setGapSec] = useState(1)
 
   function mapComa(comaIndex: number, fn: (c: Coma) => Coma) {
     setComas((prev) => prev.map((c, i) => (i === comaIndex ? fn(c) : c)))
@@ -82,6 +98,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setModeState(m)
         saveMode(m)
       },
+      autoPlay,
+      setAutoPlay,
+      gapSec,
+      setGapSec,
       comas,
       setComaPanel: (comaIndex, panelId) => mapComa(comaIndex, (c) => ({ ...c, panelId })),
       moveComa: (comaIndex, dir) => setComas((prev) => moveItem(prev, comaIndex, dir)),
@@ -124,9 +144,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           if (prevUrl) URL.revokeObjectURL(prevUrl)
           return blob ? URL.createObjectURL(blob) : null
         })
+        // 録音が変わったら、古い声のお試しキャッシュは無効。
+        setTryoutVoices({})
+      },
+      tryoutVoices,
+      setTryoutVoice: (phrase, url) =>
+        setTryoutVoices((prev) => ({ ...prev, [phrase]: url })),
+      resetWork: () => {
+        setComas(emptyComas())
+        setRecordingBlob(null)
+        setRecordingUrl((prevUrl) => {
+          if (prevUrl) URL.revokeObjectURL(prevUrl)
+          return null
+        })
+        setTryoutVoices({})
+        setStarted(false)
       },
     }),
-    [started, active, assignment, mode, comas, recordingBlob, recordingUrl],
+    [started, active, assignment, mode, autoPlay, gapSec, comas, recordingBlob, recordingUrl, tryoutVoices],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
