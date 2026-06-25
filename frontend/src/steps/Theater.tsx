@@ -16,11 +16,9 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
  */
 export function Theater() {
   const { panels } = usePanels()
-  const { comas, mode } = useApp()
+  const { comas, mode, autoPlay: auto, setAutoPlay: setAuto, gapSec, setGapSec } = useApp()
   const [current, setCurrent] = useState(0)
   const [playing, setPlaying] = useState(false)
-  const [auto, setAuto] = useState(false)
-  const [gapSec, setGapSec] = useState(1)
   const [playingLineId, setPlayingLineId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const cancelRef = useRef(false)
@@ -150,20 +148,30 @@ export function Theater() {
         </div>
 
         <div className="player-options">
-          <label className="opt">
+          <label className="opt auto-toggle">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
             <Ruby text="自動(じどう)でめくる" />
           </label>
-          <div className="opt">
-            <Ruby text="間(ま)" />
-            <button className="mini" onClick={() => setGapSec((s) => Math.max(0.5, +(s - 0.5).toFixed(1)))}>
-              －
-            </button>
-            <span className="gap-val">{gapSec.toFixed(1)}秒</span>
-            <button className="mini" onClick={() => setGapSec((s) => Math.min(5, +(s + 0.5).toFixed(1)))}>
-              ＋
-            </button>
-          </div>
+          {auto && (
+            <div className="opt gap-ctrl">
+              <Ruby text="つぎのコマまで" />
+              <button
+                className="mini"
+                aria-label="間をみじかく"
+                onClick={() => setGapSec(Math.max(0.5, +(gapSec - 0.5).toFixed(1)))}
+              >
+                －
+              </button>
+              <span className="gap-val">{gapSec.toFixed(1)}秒</span>
+              <button
+                className="mini"
+                aria-label="間をながく"
+                onClick={() => setGapSec(Math.min(5, +(gapSec + 0.5).toFixed(1)))}
+              >
+                ＋
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
