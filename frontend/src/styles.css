@@ -394,6 +394,15 @@ input[type='text']:focus {
   background: #dcfce7;
   border: 2px solid #86efac;
 }
+/* バナー内のボタン（再接続やフォールバック）は控えめサイズに */
+.banner .row {
+  gap: 8px;
+}
+.banner .btn {
+  font-size: 15px;
+  padding: 10px 14px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.1);
+}
 
 /* ===== 管理画面（先生用）への隠し導線 ===== */
 .gear {
@@ -636,6 +645,15 @@ rt {
   /* 編集の「ここに言葉を書く」など入力文字を小さく */
   .line-edit input {
     font-size: 16px;
+  }
+  /* 接続エラーバナーの再接続ボタンは縦に積んで全幅に（iPhoneで大きく崩れない） */
+  .banner {
+    padding: 12px;
+  }
+  .banner .btn {
+    flex: 1 1 100%;
+    font-size: 14px;
+    padding: 11px 12px;
   }
   /* 劇場の「前・再生・次」は1行に収める（折り返さず縮める） */
   .player-row {
