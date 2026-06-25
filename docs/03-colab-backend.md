@@ -24,8 +24,8 @@
 ### セル1: リポジトリ取得
 
 ```python
-!git clone https://github.com/<YOUR_NAME>/voice-comic-theater.git
-%cd /content/voice-comic-theater
+!git clone https://github.com/<YOUR_NAME>/koekomi.git
+%cd /content/koekomi
 ```
 
 ### セル2: 設定（秘密情報はシークレットから）

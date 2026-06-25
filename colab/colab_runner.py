@@ -3,8 +3,8 @@ Colab 上で FastAPI バックエンドを起動し、ngrok で公開して GAS 
 
 Colab のノートブック最後のセルで実行する想定:
 
-    !git clone https://github.com/<you>/voice-comic-theater.git
-    %cd voice-comic-theater
+    !git clone https://github.com/<you>/koekomi.git
+    %cd koekomi
     # 秘密情報は Colab の「シークレット」または os.environ で渡す（直書きしない）
     import os
     os.environ["NGROK_AUTHTOKEN"] = "..."   # 例: userdata.get('NGROK_AUTHTOKEN')
