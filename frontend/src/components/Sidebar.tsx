@@ -60,7 +60,7 @@ export function Sidebar({
             <Icon name="settings" size={20} />
           </span>
           <span className="lb">
-            <Ruby text="先生(せんせい)" />
+            <Ruby text="設定(せってい)" />
           </span>
         </button>
       </div>

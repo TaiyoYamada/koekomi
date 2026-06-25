@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { Ruby } from './components/Furigana'
 
 /** プライバシーポリシー（保護者・関係者向け。やさしく崩さず丁寧に記載）。 */
 export function Privacy() {
@@ -6,7 +7,7 @@ export function Privacy() {
   return (
     <div className="admin">
       <button className="btn secondary" onClick={() => navigate('/')}>
-        ← アプリに戻る
+        ← <Ruby text="アプリに戻(もど)る" />
       </button>
       <h1>プライバシーポリシー</h1>
 

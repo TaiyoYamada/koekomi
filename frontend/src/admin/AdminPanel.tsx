@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Ruby } from '../components/Furigana'
 import { useApp } from '../state'
 import { colorDef } from '../lib/colors'
 import { checkHealth } from '../lib/api'
@@ -58,7 +59,7 @@ export function AdminPanel() {
   return (
     <div className="admin">
       <button className="btn secondary" onClick={() => navigate('/')}>
-        ← アプリに戻る
+        ← <Ruby text="アプリに戻(もど)る" />
       </button>
       <h1>先生用設定</h1>
 
