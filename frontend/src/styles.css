@@ -772,6 +772,7 @@ rt {
 }
 .line-edit input {
   flex: 1;
+  min-width: 0;
 }
 .add-line {
   font-size: 18px;
@@ -814,6 +815,7 @@ rt {
   display: flex;
   gap: 8px;
   justify-content: center;
+  flex-wrap: nowrap;
 }
 .player-options {
   display: flex;
