@@ -587,6 +587,79 @@ rt {
     display: none;
   }
 }
+/* スマホ（さらに狭い画面）向けの詰め */
+@media (max-width: 480px) {
+  body {
+    font-size: 18px;
+  }
+  .sidebar {
+    flex-basis: 56px;
+    width: 56px;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+  .side-item {
+    border-width: 2px;
+    padding: 9px 2px;
+    border-radius: 14px;
+  }
+  .side-item.small {
+    padding: 7px 2px;
+  }
+  .side-item .ic {
+    font-size: 22px;
+  }
+  .main {
+    padding: 12px 12px 80px;
+  }
+  .coma-card {
+    padding: 12px;
+  }
+  .home-title {
+    font-size: 38px;
+  }
+  .home-tagline {
+    font-size: 17px;
+  }
+  .home-start {
+    font-size: 26px;
+    padding: 16px;
+  }
+  .btn.big {
+    font-size: 24px;
+  }
+  /* 録音で読むスクリプトは画面幅に対して少し小さく */
+  .script-text {
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  /* 編集の「ここに言葉を書く」など入力文字を小さく */
+  .line-edit input {
+    font-size: 16px;
+  }
+  /* 劇場の「前・再生・次」は1行に収める（折り返さず縮める） */
+  .player-row {
+    gap: 6px;
+  }
+  .player-row .btn {
+    font-size: 16px;
+    padding: 12px 12px;
+    min-width: 0;
+  }
+  .player-row .icon-btn {
+    gap: 4px;
+  }
+}
+/* とても狭い画面ではパネルを2列に */
+@media (max-width: 360px) {
+  .panel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .player-row .btn {
+    font-size: 15px;
+    padding: 11px 8px;
+  }
+}
 
 /* ===== 編集カード ===== */
 .coma-card {
