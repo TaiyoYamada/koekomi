@@ -38,6 +38,10 @@ class DummyTTS:
     _base_freqs = [330.0, 392.0, 440.0, 523.0]
     _counter = 0
 
+    async def warmup(self) -> None:
+        """読み込むものは無いので何もしない。"""
+        return None
+
     async def synthesize(
         self,
         *,

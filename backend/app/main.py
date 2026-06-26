@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -9,10 +10,28 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
+from .locks import generation_lock
 from .routes import cleanup, files, generate, health
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("vct")
+
+
+async def _warmup() -> None:
+    """起動後すぐ、背景でモデルを読み込んでおく（初回リクエストの数分待ちを無くす）。
+
+    生成と同じ generation_lock を取ってから読み込むので、本番リクエストと
+    モデル読み込みが二重に走ることはない（先に来たリクエストが読み込めば、
+    こちらは即終わる）。
+    """
+    from .services.tts import get_tts
+
+    try:
+        async with generation_lock:
+            await get_tts().warmup()
+        log.info("ウォームアップ完了（モデル読み込み済み）")
+    except Exception as e:  # 失敗してもサーバーは動かす（初回リクエストで再試行される）。
+        log.warning("ウォームアップに失敗しました（初回リクエストで読み込みます）: %s", e)
 
 
 @asynccontextmanager
@@ -31,6 +50,8 @@ async def lifespan(_: FastAPI):
     )
     if tts == "dummy" and settings.tts_backend != "dummy":
         log.warning("⚠️ TTS が dummy で動作中（Qwen3-TTS が読み込めていません）")
+    # 背景でウォームアップ（lifespan はブロックしないので /health はすぐ応答する）。
+    asyncio.create_task(_warmup())
     yield
 
 

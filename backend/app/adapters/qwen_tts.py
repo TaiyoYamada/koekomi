@@ -61,6 +61,10 @@ class QwenTTS:
         self._model = Qwen3TTSModel.from_pretrained(settings.qwen_model, **kwargs)
         return self._model
 
+    async def warmup(self) -> None:
+        """モデルを先に読み込んでおく（初回リクエストの数分待ちを無くす）。"""
+        await asyncio.to_thread(self._load)
+
     async def synthesize(
         self,
         *,
