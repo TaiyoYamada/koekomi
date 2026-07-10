@@ -152,11 +152,6 @@ button {
   transform: translateY(3px);
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
 }
-.btn:disabled {
-  background: #d1d5db;
-  box-shadow: none;
-  cursor: not-allowed;
-}
 .btn.secondary {
   background: #fff;
   color: var(--ink);
@@ -172,6 +167,13 @@ button {
 }
 .btn.stop {
   background: #111827;
+}
+/* 無効時のグレーは色付きボタン（rec/stop等）より必ず優先する（定義順で勝たせる） */
+.btn:disabled {
+  background: #d1d5db;
+  color: #fff;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 /* ===== 下部の進む・もどる ===== */
@@ -750,6 +752,13 @@ rt {
 
 /* ===== 編集カード ===== */
 .coma-card {
+  /* 白いカードごと写真に合わせる。中の写真が劇場スクリーンと同じ幅になるよう、
+     左右パディング（16px×2）を足した幅にする。 */
+  --chrome-h: 300px;
+  width: min(100%, calc(max(560px, (100vh - var(--chrome-h)) * 1.6) + 32px), 1132px);
+  width: min(100%, calc(max(560px, (100svh - var(--chrome-h)) * 1.6) + 32px), 1132px);
+  margin-left: auto;
+  margin-right: auto;
   background: var(--card);
   border-radius: var(--radius);
   padding: 16px;
@@ -791,6 +800,7 @@ rt {
   border-color: #fca5a5;
 }
 .coma-photo {
+  /* カード（.coma-card）が劇場スクリーン＋パディング幅なので、100% で劇場と同じ幅になる */
   width: 100%;
   aspect-ratio: 16 / 10;
   border: 3px dashed #e5e7eb;
@@ -811,14 +821,12 @@ rt {
   color: #9ca3af;
   font-weight: 800;
 }
-/* 写真があるとき：上下ドラッグで縦位置を合わせる */
+/* 写真があるとき（中央固定トリミング。ドラッグ調整は廃止した） */
 .coma-photo.has-photo {
   position: relative;
   display: block;
-  cursor: ns-resize;
 }
 .coma-photo.has-photo img {
-  touch-action: none; /* 縦ドラッグをページスクロールに奪われないように */
   user-select: none;
 }
 .photo-change {
@@ -833,18 +841,6 @@ rt {
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
   cursor: pointer;
-}
-.photo-hint {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-weight: 800;
-  font-size: 12px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  pointer-events: none;
 }
 .lines {
   margin-top: 12px;

@@ -13,7 +13,7 @@ function fmt(sec: number): string {
 
 /** 声をろくおんする（AIの声のもとになる参照音声。1回だけ）。 */
 export function Record() {
-  const { recordingUrl, setRecording } = useApp()
+  const { recordingUrl, setRecording, generating } = useApp()
   const [recording, setRecordingState] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState(false)
@@ -73,6 +73,11 @@ export function Record() {
           <Ruby text="マイクが使(つか)えませんでした。設定(せってい)を確認(かくにん)してね。" />
         </div>
       )}
+      {generating && !recording && (
+        <div className="banner warn">
+          <Ruby text="いまAIが声(こえ)を作(つく)っているよ。終(お)わったら録(と)り直(なお)せるよ。" />
+        </div>
+      )}
 
       <div className="card center">
         {recording && (
@@ -83,7 +88,11 @@ export function Record() {
           </div>
         )}
         {!recording ? (
-          <button className="btn rec big icon-btn" onClick={onStart} disabled={!supported}>
+          <button
+            className="btn rec big icon-btn"
+            onClick={onStart}
+            disabled={!supported || generating}
+          >
             <Icon name="mic" size={26} />
             <Ruby text="録音(ろくおん)スタート" />
           </button>
@@ -110,7 +119,7 @@ export function Record() {
         <p className="step-hint" style={{ marginTop: 0 }}>
           <Ruby text="録音(ろくおん)できないときは、上(うえ)の文(ぶん)を読(よ)んで録音(ろくおん)した音声(おんせい)ファイルを選(えら)んでね。" />
         </p>
-        <input type="file" accept="audio/*" onChange={onUpload} />
+        <input type="file" accept="audio/*" onChange={onUpload} disabled={generating} />
       </div>
     </div>
   )

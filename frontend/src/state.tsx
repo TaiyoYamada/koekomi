@@ -56,8 +56,6 @@ export interface AppState {
   // 作品データ（コマ＝写真＋セリフ複数）
   comas: Coma[]
   setComaPanel: (comaIndex: number, panelId: string) => void
-  /** 写真の縦位置（0〜100%）を変える。 */
-  setComaFocus: (comaIndex: number, focusY: number) => void
   moveComa: (comaIndex: number, dir: -1 | 1) => void
   addLine: (comaIndex: number) => void
   updateLine: (comaIndex: number, lineId: string, text: string) => void
@@ -76,6 +74,12 @@ export interface AppState {
   // お試し音声のキャッシュ（セリフ文→音声URL）。メモリ保持。録音が変わると自動で空にする。
   tryoutVoices: Record<string, string>
   setTryoutVoice: (phrase: string, url: string) => void
+
+  /** AI音声を生成中か（本生成・お試し生成のどちらか）。生成中は録り直し等を止めて負荷を増やさない。 */
+  generating: boolean
+  /** 生成の開始/終了を知らせる。開始で必ず終了を呼ぶこと（複数同時でも数で管理する）。 */
+  beginGenerating: () => void
+  endGenerating: () => void
 
   /** 作品データ（コマ・録音・お試し）を消してタイトルに戻す。イベントで次の子に渡すとき用。 */
   resetWork: () => void
@@ -107,6 +111,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
   const [autoPlay, setAutoPlay] = useState(boot?.snapshot.autoPlay ?? false)
   const [gapSec, setGapSec] = useState(boot?.snapshot.gapSec ?? 0.5)
+  // 進行中の生成リクエスト数（本生成＋お試し）。0より大きい間は「生成中」。
+  const [genCount, setGenCount] = useState(0)
 
   // 「この blob: URL は IndexedDB 保存済み」の対応表（persistWork が更新する）。
   const savedUrlsRef = useRef(new Map<string, string>())
@@ -168,9 +174,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       gapSec,
       setGapSec,
       comas,
-      // 写真を変えたら縦位置は中央にリセットして、改めて合わせ込めるようにする。
       setComaPanel: (comaIndex, panelId) => mapComa(comaIndex, (c) => ({ ...c, panelId, focusY: 50 })),
-      setComaFocus: (comaIndex, focusY) => mapComa(comaIndex, (c) => ({ ...c, focusY })),
       moveComa: (comaIndex, dir) => setComas((prev) => moveItem(prev, comaIndex, dir)),
       addLine: (comaIndex) =>
         mapComa(comaIndex, (c) =>
@@ -220,6 +224,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       tryoutVoices,
       setTryoutVoice: (phrase, url) =>
         setTryoutVoices((prev) => ({ ...prev, [phrase]: url })),
+      generating: genCount > 0,
+      beginGenerating: () => setGenCount((n) => n + 1),
+      endGenerating: () => setGenCount((n) => Math.max(0, n - 1)),
       resetWork: () => {
         setComas(emptyComas())
         setRecordingBlob(null)
@@ -234,7 +241,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         void clearWork()
       },
     }),
-    [started, active, assignment, mode, autoPlay, gapSec, comas, recordingBlob, recordingUrl, tryoutVoices],
+    [started, active, assignment, mode, autoPlay, gapSec, comas, recordingBlob, recordingUrl, tryoutVoices, genCount],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

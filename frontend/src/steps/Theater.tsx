@@ -143,7 +143,7 @@ export function Theater() {
 
       <div className="theater-screen">
         {panel ? (
-          <img src={panel.src} alt={panel.label} style={{ objectPosition: `50% ${coma.focusY}%` }} />
+          <img src={panel.src} alt={panel.label} />
         ) : (
           <div className="theater-noimg" />
         )}

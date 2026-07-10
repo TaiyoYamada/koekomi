@@ -314,7 +314,8 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
     if (!ctx) throw new Error('canvas を使えません。')
 
     const first = segs[0]
-    drawFrame(ctx, images.get(comas[first.comaIndex].panelId ?? ''), comas[first.comaIndex].focusY, '')
+    // 画面表示と同じく中央固定のトリミング（focusY の調整UIは廃止した）。
+    drawFrame(ctx, images.get(comas[first.comaIndex].panelId ?? ''), 50, '')
 
     const videoStream = canvas.captureStream(FPS)
     const dest = ac.createMediaStreamDestination()
@@ -376,7 +377,7 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
         const seg = segmentAt(segs, elapsed)
         if (seg) {
           const coma = comas[seg.comaIndex]
-          drawFrame(ctx, images.get(coma.panelId ?? ''), coma.focusY, seg.subtitle)
+          drawFrame(ctx, images.get(coma.panelId ?? ''), 50, seg.subtitle)
         }
         onProgress?.(Math.min(1, elapsed / totalMs))
       }, FRAME_INTERVAL_MS)

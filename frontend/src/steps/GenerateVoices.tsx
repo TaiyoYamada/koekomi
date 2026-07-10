@@ -9,7 +9,8 @@ import { REFERENCE_SCRIPT } from '../lib/script'
 
 /** AIで声を作る（全コマの全セリフぶんを生成）。 */
 export function GenerateVoices() {
-  const { assignment, recordingBlob, comas, setLineVoice } = useApp()
+  const { assignment, recordingBlob, comas, setLineVoice, beginGenerating, endGenerating } =
+    useApp()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,6 +25,7 @@ export function GenerateVoices() {
     if (!assignment || !recordingBlob || targets.length === 0) return
     setBusy(true)
     setError(null)
+    beginGenerating() // 生成中は録音のやり直し等を止める（負荷を増やさない）
     try {
       const res = await generateComicVoices(assignment.apiUrl, {
         audio: recordingBlob,
@@ -39,6 +41,7 @@ export function GenerateVoices() {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
+      endGenerating()
     }
   }
 

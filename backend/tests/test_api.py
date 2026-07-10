@@ -70,3 +70,20 @@ def test_generation_lock_released_after_request(client, fake_audio):
     )
     # 処理後はロックが解放されている（1件ずつ処理の後始末）。
     assert generation_lock.locked() is False
+
+
+def test_reference_recording_deleted_after_generation(client, fake_audio):
+    """子どもの声（参照録音）はリクエスト処理後にサーバーへ残さない。"""
+    from app.config import settings
+
+    res = client.post(
+        "/generate-comic-voices",
+        files={"audio": ("ref.webm", fake_audio, "audio/webm")},
+        data={"reference_text": "x", "lines": ["a", "b"]},
+    )
+    assert res.status_code == 200
+    # tmp（アップロード置き場）に参照録音が残っていないこと。
+    leftovers = list(settings.tmp_dir.iterdir())
+    assert leftovers == [], f"参照録音が残っている: {leftovers}"
+    # 生成した音声（再生に必要）は残っていること。
+    assert any(settings.output_dir.iterdir())

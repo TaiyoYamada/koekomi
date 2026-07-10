@@ -16,7 +16,8 @@ const PRESETS = [
  *  本番の全セリフ生成（AI声セクション）とは別の、録音できたか確かめる即時フィードバック。
  *  録音できたら自動でプリセットを先読み生成しておくので、ボタンは押した瞬間に鳴る。 */
 export function VoiceTryout() {
-  const { assignment, recordingBlob, tryoutVoices, setTryoutVoice } = useApp()
+  const { assignment, recordingBlob, tryoutVoices, setTryoutVoice, beginGenerating, endGenerating } =
+    useApp()
   const [preparing, setPreparing] = useState(false)
   const [prepError, setPrepError] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -33,6 +34,7 @@ export function VoiceTryout() {
     }
     setPreparing(true)
     setPrepError(false)
+    beginGenerating() // お試しの先読みも生成の一種。生成中は録り直しを止める。
     try {
       for (const { say } of PRESETS) {
         if (tryoutVoices[say]) continue
@@ -49,6 +51,7 @@ export function VoiceTryout() {
       setPrepError(true)
     } finally {
       setPreparing(false)
+      endGenerating()
     }
     // tryoutVoices は意図的に依存に入れない（生成のたびに再実行させないため）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
