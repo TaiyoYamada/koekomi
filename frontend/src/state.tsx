@@ -1,8 +1,20 @@
 // アプリ全体の状態管理（React Context）。
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { COMA_COUNT, MAX_LINES_PER_COMA, type Assignment, type Coma, type Line, type VoiceMode } from './types'
 import { loadMode, saveMode } from './lib/storage'
+import {
+  REFERENCE_KEY,
+  clearWork,
+  deserializeWork,
+  idbDeleteAudio,
+  idbGetAudio,
+  idbPutAudio,
+  loadWork,
+  maxLineSeq,
+  persistWork,
+  type WorkSnapshot,
+} from './lib/persist'
 
 let _seq = 0
 function newLine(text = ''): Line {
@@ -71,17 +83,68 @@ export interface AppState {
 
 const Ctx = createContext<AppState | null>(null)
 
+/** 起動時に localStorage から作品を読む（1回だけ）。id の連番も引き継ぐ。 */
+function restoreOnBoot(): { snapshot: WorkSnapshot; idbLineIds: string[] } | null {
+  const saved = loadWork()
+  if (!saved) return null
+  _seq = Math.max(_seq, maxLineSeq(saved))
+  return deserializeWork(saved)
+}
+
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [started, setStarted] = useState(false)
-  const [active, setActive] = useState('editor')
+  // undefined=未読込。最初のレンダーで一度だけ localStorage を読む。
+  const bootRef = useRef<ReturnType<typeof restoreOnBoot> | undefined>(undefined)
+  if (bootRef.current === undefined) bootRef.current = restoreOnBoot()
+  const boot = bootRef.current
+
+  const [started, setStarted] = useState(boot?.snapshot.started ?? false)
+  const [active, setActive] = useState(boot?.snapshot.active ?? 'editor')
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [mode, setModeState] = useState<VoiceMode>(() => loadMode())
-  const [comas, setComas] = useState<Coma[]>(() => emptyComas())
+  const [comas, setComas] = useState<Coma[]>(() => boot?.snapshot.comas ?? emptyComas())
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null)
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
   const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
-  const [autoPlay, setAutoPlay] = useState(false)
-  const [gapSec, setGapSec] = useState(1)
+  const [autoPlay, setAutoPlay] = useState(boot?.snapshot.autoPlay ?? false)
+  const [gapSec, setGapSec] = useState(boot?.snapshot.gapSec ?? 1)
+
+  // 「この blob: URL は IndexedDB 保存済み」の対応表（persistWork が更新する）。
+  const savedUrlsRef = useRef(new Map<string, string>())
+
+  // 起動時: IndexedDB から音声Blobを読み戻して object URL を貼り直す。
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      for (const id of bootRef.current?.idbLineIds ?? []) {
+        const blob = await idbGetAudio(id)
+        if (!alive || !blob) continue
+        const url = URL.createObjectURL(blob)
+        savedUrlsRef.current.set(id, url)
+        setComas((prev) =>
+          prev.map((c) => ({
+            ...c,
+            lines: c.lines.map((l) => (l.id === id ? { ...l, voiceUrl: url } : l)),
+          })),
+        )
+      }
+      const ref = await idbGetAudio(REFERENCE_KEY)
+      if (alive && ref) {
+        setRecordingBlob((prev) => prev ?? ref)
+        setRecordingUrl((prev) => prev ?? URL.createObjectURL(ref))
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // 変更のたびに保存（打鍵中に連続保存しないよう少し待つ）。
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void persistWork({ comas, started, active, autoPlay, gapSec }, savedUrlsRef.current)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [comas, started, active, autoPlay, gapSec])
 
   function mapComa(comaIndex: number, fn: (c: Coma) => Coma) {
     setComas((prev) => prev.map((c, i) => (i === comaIndex ? fn(c) : c)))
@@ -150,6 +213,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         })
         // 録音が変わったら、古い声のお試しキャッシュは無効。
         setTryoutVoices({})
+        // リロード対策: 参照録音は IndexedDB にも置いておく。
+        if (blob) void idbPutAudio(REFERENCE_KEY, blob)
+        else void idbDeleteAudio(REFERENCE_KEY)
       },
       tryoutVoices,
       setTryoutVoice: (phrase, url) =>
@@ -163,6 +229,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         })
         setTryoutVoices({})
         setStarted(false)
+        // 保存データも消す（次の子に渡すとき、前の子の作品が復元されないように）。
+        savedUrlsRef.current.clear()
+        void clearWork()
       },
     }),
     [started, active, assignment, mode, autoPlay, gapSec, comas, recordingBlob, recordingUrl, tryoutVoices],

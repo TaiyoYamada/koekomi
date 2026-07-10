@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Ruby } from './Furigana'
 import { Icon } from './icons'
 import { Mascot } from './Mascot'
+import { useApp } from '../state'
 import type { SectionMeta } from '../ui/labels'
 
 /** 左サイドバー。どの画面へもいつでも移動できる（順番なし）。 */
@@ -15,14 +16,23 @@ export function Sidebar({
   onSelect: (key: string) => void
 }) {
   const navigate = useNavigate()
+  const { setStarted } = useApp()
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
+      {/* ロゴでスタート画面へ戻る（作品は保存されているので消えない）。 */}
+      <button
+        className="sidebar-brand"
+        aria-label="スタート画面にもどる"
+        onClick={() => {
+          setStarted(false)
+          navigate('/')
+        }}
+      >
         <span className="brand-mark">
           <Mascot size={32} />
         </span>
         <span className="brand-name">コエコミ</span>
-      </div>
+      </button>
       <nav className="sidebar-nav">
         {items.map((it) => (
           <button

@@ -564,12 +564,24 @@ rt {
   top: 0;
   height: 100vh;
 }
+/* ボタン（押すとスタート画面へ戻る） */
 .sidebar-brand {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   padding: 6px 0 8px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.sidebar-brand:hover {
+  background: #fff3e9;
+}
+.sidebar-brand:active .brand-mark {
+  transform: scale(0.94);
 }
 .brand-mark {
   width: 38px;
