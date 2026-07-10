@@ -1,102 +1,92 @@
 [
   {
-    "id": "panel-01",
-    "src": "/panels/panel-01.svg",
-    "label": "いぬ"
+    "id": "chick-cookie",
+    "src": "/panels/chick-cookie.jpg",
+    "label": "ひよこクッキー"
   },
   {
-    "id": "panel-02",
-    "src": "/panels/panel-02.svg",
-    "label": "ねこ"
+    "id": "chick-book",
+    "src": "/panels/chick-book.jpg",
+    "label": "ひよこ本"
   },
   {
-    "id": "panel-03",
-    "src": "/panels/panel-03.svg",
-    "label": "うさぎ"
+    "id": "chick-watering",
+    "src": "/panels/chick-watering.jpg",
+    "label": "ひよこ水やり"
   },
   {
-    "id": "panel-04",
-    "src": "/panels/panel-04.svg",
-    "label": "くま"
+    "id": "chick-what-grows",
+    "src": "/panels/chick-what-grows.jpg",
+    "label": "ひよこ何が生える？"
   },
   {
-    "id": "panel-05",
-    "src": "/panels/panel-05.svg",
-    "label": "きつね"
+    "id": "chick-magnifying-glass",
+    "src": "/panels/chick-magnifying-glass.jpg",
+    "label": "ひよこ虫眼鏡"
   },
   {
-    "id": "panel-06",
-    "src": "/panels/panel-06.svg",
-    "label": "かえる"
+    "id": "chick-heavy-rain",
+    "src": "/panels/chick-heavy-rain.jpg",
+    "label": "ひよこ大雨"
   },
   {
-    "id": "panel-07",
-    "src": "/panels/panel-07.svg",
-    "label": "ペンギン"
+    "id": "chick-shock",
+    "src": "/panels/chick-shock.jpg",
+    "label": "ひよこショック"
   },
   {
-    "id": "panel-08",
-    "src": "/panels/panel-08.svg",
-    "label": "ライオン"
+    "id": "chick-teary-eyes",
+    "src": "/panels/chick-teary-eyes.jpg",
+    "label": "ひよこ涙目"
   },
   {
-    "id": "panel-09",
-    "src": "/panels/panel-09.svg",
-    "label": "かめ"
+    "id": "chick-kotatsu",
+    "src": "/panels/chick-kotatsu.jpg",
+    "label": "ひよことこたつ"
   },
   {
-    "id": "panel-10",
-    "src": "/panels/panel-10.svg",
-    "label": "ひよこ"
+    "id": "chick-kusudama",
+    "src": "/panels/chick-kusudama.jpg",
+    "label": "ひよこくす玉"
   },
   {
-    "id": "panel-11",
-    "src": "/panels/panel-11.svg",
-    "label": "き"
+    "id": "cookie",
+    "src": "/panels/cookie.jpg",
+    "label": "クッキー"
   },
   {
-    "id": "panel-12",
-    "src": "/panels/panel-12.svg",
-    "label": "いえ"
+    "id": "burnt",
+    "src": "/panels/burnt.jpeg",
+    "label": "おこげ"
   },
   {
-    "id": "panel-13",
-    "src": "/panels/panel-13.svg",
-    "label": "ロケット"
+    "id": "oven",
+    "src": "/panels/oven.jpeg",
+    "label": "オーブン"
   },
   {
-    "id": "panel-14",
-    "src": "/panels/panel-14.svg",
-    "label": "ほし"
+    "id": "dragon-fire",
+    "src": "/panels/dragon-fire.jpeg",
+    "label": "ドラゴン炎"
   },
   {
-    "id": "panel-15",
-    "src": "/panels/panel-15.svg",
-    "label": "にじ"
+    "id": "explosion",
+    "src": "/panels/explosion.jpg",
+    "label": "爆発"
   },
   {
-    "id": "panel-16",
-    "src": "/panels/panel-16.svg",
-    "label": "りんご"
+    "id": "sunflower",
+    "src": "/panels/sunflower.jpg",
+    "label": "ひまわり"
   },
   {
-    "id": "panel-17",
-    "src": "/panels/panel-17.svg",
-    "label": "ふうせん"
+    "id": "hydrangea",
+    "src": "/panels/hydrangea.jpg",
+    "label": "紫陽花"
   },
   {
-    "id": "panel-18",
-    "src": "/panels/panel-18.svg",
-    "label": "くるま"
-  },
-  {
-    "id": "panel-19",
-    "src": "/panels/panel-19.svg",
-    "label": "ボール"
-  },
-  {
-    "id": "panel-20",
-    "src": "/panels/panel-20.svg",
-    "label": "プレゼント"
+    "id": "withered-leaves",
+    "src": "/panels/withered-leaves.jpg",
+    "label": "枯れた葉"
   }
 ]
