@@ -313,13 +313,27 @@ input[type='text']:focus {
 /* 映画スクリーン風ステージ（写真＋下に字幕オーバーレイ）。 */
 .theater-screen {
   position: relative;
-  max-width: 560px;
+  /* 見出し・コマ選び・再生ボタンが入る高さ。これを画面の高さから引いた残りに収める。 */
+  --chrome-h: 440px;
+  /* 16:10 なので「使える高さ × 1.6」が横幅の上限。これで再生ボタンが画面外に出ない。
+     下限の 560px は従来のサイズ。縦の狭い画面でも今より小さくはしない。 */
+  width: min(100%, max(560px, (100vh - var(--chrome-h)) * 1.6));
+  width: min(100%, max(560px, (100svh - var(--chrome-h)) * 1.6));
+  max-width: 1100px;
   margin: 0 auto;
   border-radius: 18px;
   overflow: hidden;
   background: #0b0f17;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   aspect-ratio: 16 / 10;
+  /* 字幕をビューポートではなくスクリーン幅に追従させる（下の cqw）。 */
+  container-type: inline-size;
+}
+@media (max-width: 600px) {
+  /* スマホでは横幅（100%）が先に効くので、高さの余裕は少なめでよい。 */
+  .theater-screen {
+    --chrome-h: 360px;
+  }
 }
 .theater-screen img {
   width: 100%;
@@ -333,10 +347,12 @@ input[type='text']:focus {
   right: 0;
   bottom: 0;
   padding: 28px 18px 18px;
+  padding: clamp(20px, 5cqw, 44px) clamp(14px, 3cqw, 28px) clamp(14px, 3cqw, 26px);
   background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
   color: #fff;
   font-weight: 800;
   font-size: clamp(18px, 4.6vw, 28px);
+  font-size: clamp(18px, 5.2cqw, 34px);
   text-align: center;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
   line-height: 1.5;
@@ -373,6 +389,45 @@ input[type='text']:focus {
 .coma-tabs .t.active {
   background: var(--primary);
   color: #fff;
+}
+.coma-tabs .t:disabled {
+  opacity: 0.5;
+}
+
+/* 動画で保存：スクリーンの右上に重ねる（編集画面の .photo-change と同じ作法）。 */
+.screen-action {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px; /* iPad で押しやすい大きさを確保する */
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.2; /* ふりがな（rt）が潰れないように */
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+}
+.screen-action:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.78);
+}
+.screen-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.screen-action.recording {
+  background: #dc2626;
+}
+.export-hint {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 /* ===== バナー・注意 ===== */

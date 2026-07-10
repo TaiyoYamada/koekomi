@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
 import { findPanel, usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import { speak, stopSpeaking } from '../lib/speech'
+import { downloadBlob, exportTheaterVideo, isVideoExportSupported } from '../lib/export-video'
 import type { Line } from '../types'
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -23,11 +24,20 @@ export function Theater() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const cancelRef = useRef(false)
 
+  const [exporting, setExporting] = useState(false)
+  const [exportPct, setExportPct] = useState(0)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  // 読み上げモードの声（speechSynthesis）は録音できないので、書き出しは出さない。
+  const canExport = useMemo(() => mode !== 'browser-tts' && isVideoExportSupported(), [mode])
+
   useEffect(() => {
     return () => {
       cancelRef.current = true
       stopSpeaking()
       audioRef.current?.pause()
+      abortRef.current?.abort()
     }
   }, [])
 
@@ -89,6 +99,32 @@ export function Theater() {
     setCurrent(Math.max(0, Math.min(comas.length - 1, ci)))
   }
 
+  async function saveVideo() {
+    stop()
+    setExportError(null)
+    setExportPct(0)
+    setExporting(true)
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+    try {
+      const { blob, ext } = await exportTheaterVideo({
+        comas,
+        panels,
+        gapSec,
+        signal: ctrl.signal,
+        onProgress: (r) => setExportPct(Math.round(r * 100)),
+      })
+      downloadBlob(blob, `koekomi-4koma.${ext}`)
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        setExportError(e instanceof Error ? e.message : String(e))
+      }
+    } finally {
+      setExporting(false)
+      abortRef.current = null
+    }
+  }
+
   const coma = comas[current]
   const panel = findPanel(panels, coma.panelId)
   const visibleLines = coma.lines.filter((l) => l.text.trim() || l.voiceUrl)
@@ -114,12 +150,36 @@ export function Theater() {
         {subtitle && (
           <div className={'theater-subtitle' + (activeLine ? ' speaking' : '')}>{subtitle}</div>
         )}
+
+        {canExport &&
+          (!exporting ? (
+            <button className="screen-action" onClick={() => void saveVideo()} disabled={playing}>
+              <Icon name="film" size={16} />
+              <Ruby text="動画(どうが)で保存(ほぞん)" />
+            </button>
+          ) : (
+            <button className="screen-action recording" onClick={() => abortRef.current?.abort()}>
+              <Icon name="stop" size={14} />
+              <Ruby text={`録画中(ろくがちゅう) ${exportPct}%`} />
+            </button>
+          ))}
       </div>
+
+      {exporting && (
+        <p className="export-hint">
+          <Ruby text="最初(さいしょ)から流(なが)して録画(ろくが)しているよ。終(お)わるまで待(ま)ってね。" />
+        </p>
+      )}
 
       {/* コマ選び */}
       <div className="coma-tabs">
         {comas.map((_, i) => (
-          <button key={i} className={'t' + (i === current ? ' active' : '')} onClick={() => go(i)}>
+          <button
+            key={i}
+            className={'t' + (i === current ? ' active' : '')}
+            onClick={() => go(i)}
+            disabled={exporting}
+          >
             {i + 1}
           </button>
         ))}
@@ -128,11 +188,15 @@ export function Theater() {
       {/* 再生コントロール */}
       <div className="card center">
         <div className="player-row">
-          <button className="btn secondary" onClick={() => go(current - 1)} disabled={current === 0}>
+          <button
+            className="btn secondary"
+            onClick={() => go(current - 1)}
+            disabled={current === 0 || exporting}
+          >
             <Ruby text="◀ 前(まえ)" />
           </button>
           {!playing ? (
-            <button className="btn icon-btn" onClick={() => play(current)}>
+            <button className="btn icon-btn" onClick={() => play(current)} disabled={exporting}>
               <Icon name="play" size={22} />
               <Ruby text="再生(さいせい)" />
             </button>
@@ -145,7 +209,7 @@ export function Theater() {
           <button
             className="btn secondary"
             onClick={() => go(current + 1)}
-            disabled={current === comas.length - 1}
+            disabled={current === comas.length - 1 || exporting}
           >
             <Ruby text="次(つぎ) ▶" />
           </button>
@@ -177,7 +241,14 @@ export function Theater() {
             </div>
           )}
         </div>
+
       </div>
+
+      {exportError && (
+        <div className="banner err">
+          <Ruby text="動画(どうが)を保存(ほぞん)できませんでした。" /> {exportError}
+        </div>
+      )}
 
       {mode === 'browser-tts' && (
         <div className="banner warn">
