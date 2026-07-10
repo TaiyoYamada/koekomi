@@ -530,7 +530,7 @@ rt {
   font-size: 0.5em;
   font-weight: 700;
   color: inherit;
-  line-height: 1.1;
+  line-height: 1;
   user-select: none;
 }
 /* ルビのぶん行間に余裕を持たせて、重なりを防ぐ */

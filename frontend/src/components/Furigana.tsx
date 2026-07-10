@@ -22,5 +22,7 @@ export function Ruby({ text }: { text: string }) {
     last = m.index + m[0].length
   }
   if (last < text.length) out.push(text.slice(last))
-  return <>{out}</>
+  // span で1つに包む: flex コンテナ（icon-btn 等）に直接置くと、テキストと <ruby> が
+  // 別々の flex アイテムに割れて漢字だけ下に沈むため（iPad の WebKit で特に顕著）。
+  return <span>{out}</span>
 }
