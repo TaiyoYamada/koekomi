@@ -40,9 +40,14 @@
     "label": "ひよこ涙目"
   },
   {
-    "id": "chick-kotatsu",
-    "src": "/panels/chick-kotatsu.jpg",
-    "label": "ひよことこたつ"
+    "id": "chick-joy",
+    "src": "/panels/chick-joy.jpg",
+    "label": "ひよこ喜び"
+  },
+  {
+    "id": "chick-surprise",
+    "src": "/panels/chick-surprise.jpg",
+    "label": "ひよこ驚き"
   },
   {
     "id": "chick-kusudama",
@@ -56,17 +61,17 @@
   },
   {
     "id": "burnt",
-    "src": "/panels/burnt.jpeg",
+    "src": "/panels/burnt.jpg",
     "label": "おこげ"
   },
   {
     "id": "oven",
-    "src": "/panels/oven.jpeg",
+    "src": "/panels/oven.jpg",
     "label": "オーブン"
   },
   {
     "id": "dragon-fire",
-    "src": "/panels/dragon-fire.jpeg",
+    "src": "/panels/dragon-fire.jpg",
     "label": "ドラゴン炎"
   },
   {
@@ -88,5 +93,10 @@
     "id": "withered-leaves",
     "src": "/panels/withered-leaves.jpg",
     "label": "枯れた葉"
+  },
+  {
+    "id": "ant",
+    "src": "/panels/ant.jpg",
+    "label": "あり"
   }
 ]

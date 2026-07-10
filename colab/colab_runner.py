@@ -77,8 +77,20 @@ def install_dependencies() -> None:
                 print("   ⚠️ ライブラリは入ったが import に失敗しています（dummyになります）。上のエラーを確認。")
 
 
-def start_backend() -> threading.Thread:
+def start_backend() -> threading.Thread | None:
     print("[2/5] FastAPI を起動中…")
+
+    # セルの再実行では、前回のバックエンドが生きたまま残っていることがある
+    # （クラッシュしても uvicorn のスレッドは死なない）。二重起動すると
+    # 「address already in use」で紛らわしいので、生きていればそのまま使う。
+    try:
+        if requests.get(f"http://127.0.0.1:{PORT}/health", timeout=2).ok:
+            print("   前回のバックエンドがまだ動いているため、それをそのまま使います。")
+            print("   （コードを更新した場合は「ランタイムを再起動」してから実行し直してください）")
+            return None
+    except requests.RequestException:
+        pass  # 動いていない＝普通に起動する
+
     # backend ディレクトリを import パスに追加して uvicorn をプログラム起動
     sys.path.insert(0, os.path.abspath("backend"))
 
@@ -115,48 +127,101 @@ def open_ngrok() -> str:
 _cloudflared_proc: subprocess.Popen | None = None
 
 
+def _is_elf(path: str) -> bool:
+    """Linux 実行バイナリかどうか（壊れたダウンロードや HTML エラーページを弾く）。"""
+    try:
+        with open(path, "rb") as f:
+            return f.read(4) == b"\x7fELF"
+    except OSError:
+        return False
+
+
 def _download_cloudflared() -> str:
-    """cloudflared バイナリ（linux amd64）を取得して実行パスを返す。"""
+    """
+    cloudflared バイナリ（linux amd64）を取得して実行パスを返す。
+    途中で切れたダウンロードを掴まないよう、一時ファイルに落として
+    中身を確認してから所定の場所へ置く。既存ファイルも壊れていれば取り直す。
+    """
     path = os.path.abspath("cloudflared")
-    if not os.path.exists(path):
-        url = (
-            "https://github.com/cloudflare/cloudflared/releases/latest/download/"
-            "cloudflared-linux-amd64"
-        )
-        urllib.request.urlretrieve(url, path)  # noqa: S310 (github 公式リリース)
-        os.chmod(path, 0o755)
+    if _is_elf(path):
+        return path
+    if os.path.exists(path):
+        print("   壊れた cloudflared が残っていたため取り直します。")
+        os.remove(path)
+    url = (
+        "https://github.com/cloudflare/cloudflared/releases/latest/download/"
+        "cloudflared-linux-amd64"
+    )
+    tmp = path + ".download"
+    urllib.request.urlretrieve(url, tmp)  # noqa: S310 (github 公式リリース)
+    if not _is_elf(tmp):
+        os.remove(tmp)
+        raise RuntimeError("cloudflared のダウンロードが壊れていました。もう一度実行してください。")
+    os.replace(tmp, path)
+    os.chmod(path, 0o755)
     return path
 
 
 def open_cloudflare() -> str:
-    """Cloudflare Quick Tunnel を張り、発行された https URL を返す（鍵・アカウント不要）。"""
+    """
+    Cloudflare Quick Tunnel を張り、発行された https URL を返す（鍵・アカウント不要）。
+    Quick Tunnel は混雑時に一時的に拒否されることがあるため、少し置いて数回試す。
+    """
     global _cloudflared_proc
     print("[3/5] Cloudflare Quick Tunnel で外部公開中…")
     bin_path = _download_cloudflared()
-    _cloudflared_proc = subprocess.Popen(
-        [bin_path, "tunnel", "--no-autoupdate", "--url", f"http://localhost:{PORT}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
     pattern = re.compile(r"https://[-a-z0-9]+\.trycloudflare\.com")
-    deadline = time.time() + 40
-    assert _cloudflared_proc.stdout is not None
-    while time.time() < deadline:
-        line = _cloudflared_proc.stdout.readline()
-        if not line:
-            if _cloudflared_proc.poll() is not None:
-                raise RuntimeError("cloudflared が予期せず終了しました")
-            continue
-        m = pattern.search(line)
-        if m:
-            url = m.group(0)
+
+    for attempt in range(1, 4):
+        if attempt > 1:
+            print(f"   {attempt}/3 回目を試します…")
+            time.sleep(5)
+
+        proc = subprocess.Popen(
+            [bin_path, "tunnel", "--no-autoupdate", "--url", f"http://localhost:{PORT}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        _cloudflared_proc = proc
+        assert proc.stdout is not None
+
+        log: list[str] = []
+        url: str | None = None
+        deadline = time.time() + 40
+        while time.time() < deadline:
+            line = proc.stdout.readline()
+            if not line:
+                if proc.poll() is not None:
+                    break  # プロセスが終了した
+                continue
+            log.append(line.rstrip())
+            m = pattern.search(line)
+            if m:
+                url = m.group(0)
+                break
+
+        if url:
             print(f"   公開URL: {url}")
             # 残りの出力を読み捨てる（パイプ詰まりでトンネルが固まるのを防ぐ）。
-            threading.Thread(target=_drain, args=(_cloudflared_proc,), daemon=True).start()
+            threading.Thread(target=_drain, args=(proc,), daemon=True).start()
             return url
-    raise RuntimeError("Cloudflare の公開URLを取得できませんでした")
+
+        # 失敗。原因が分かるよう cloudflared の言い分を表示してから再挑戦する。
+        try:
+            proc.kill()
+            proc.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        print("   cloudflared がトンネルを張れませんでした。出力（末尾）:")
+        for line in log[-12:] or ["（出力なし）"]:
+            print(f"     {line}")
+
+    raise RuntimeError(
+        "Cloudflare Quick Tunnel を3回試しましたが張れませんでした。"
+        "上の出力を確認してください。急ぎの場合は TUNNEL=ngrok でも起動できます。"
+    )
 
 
 def _drain(proc: subprocess.Popen) -> None:
@@ -173,27 +238,42 @@ def open_tunnel() -> str:
     return open_ngrok()
 
 
+def post_gas(action: str, payload: dict, retries: int = 1) -> requests.Response:
+    """
+    GAS へ POST する。GAS は全リクエストを直列処理していて混雑すると応答が遅いので、
+    長めに待ち、タイムアウトしたら少し置いて送り直す。
+    """
+    last_error: Exception = RuntimeError("unreachable")
+    for attempt in range(retries + 1):
+        try:
+            return requests.post(GAS_URL, params={"action": action}, json=payload, timeout=30)
+        except requests.RequestException as e:
+            last_error = e
+            if attempt < retries:
+                time.sleep(3)
+    raise last_error
+
+
 def register_to_gas(api_url: str) -> None:
     print("[4/5] GAS にサーバーを登録中…")
     if not GAS_URL:
         print("   GAS_URL 未設定のため登録をスキップします。")
         return
     try:
-        res = requests.post(
-            GAS_URL,
-            params={"action": "register"},
-            json={
+        res = post_gas(
+            "register",
+            {
                 "serverId": SERVER_ID,
                 "color": SERVER_COLOR,
                 "label": SERVER_LABEL,
                 "apiUrl": api_url,
                 "capacity": CAPACITY,
             },
-            timeout=15,
+            retries=2,
         )
         print(f"   register: HTTP {res.status_code} {res.text[:120]}")
     except requests.RequestException as e:
-        print(f"   register に失敗: {e}")
+        print(f"   register に失敗: {e}（heartbeat 側で自動的に再登録します）")
 
 
 def heartbeat_loop(api_url: str) -> None:
@@ -203,14 +283,14 @@ def heartbeat_loop(api_url: str) -> None:
         if not GAS_URL:
             continue
         try:
-            requests.post(
-                GAS_URL,
-                params={"action": "heartbeat"},
-                json={"serverId": SERVER_ID, "apiUrl": api_url},
-                timeout=10,
-            )
+            res = post_gas("heartbeat", {"serverId": SERVER_ID, "apiUrl": api_url})
+            # 起動時の register がタイムアウトしていると、heartbeat は「not registered」で
+            # 空振りし続け、この台は一覧に載らないままになる。ここで検知して登録し直す。
+            if "not registered" in res.text:
+                print("   未登録と言われたため register し直します。")
+                register_to_gas(api_url)
         except requests.RequestException as e:
-            print(f"   heartbeat に失敗: {e}")
+            print(f"   heartbeat に失敗: {e}（次の周期で再送します）")
 
 
 def main() -> None:
