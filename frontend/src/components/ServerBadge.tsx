@@ -30,7 +30,7 @@ export function ServerBadge({
       <div className="status-pill ok">
         <span className="status-dot" style={{ background: c.hex }} />
         <span>
-          <Ruby text="サーバーに接続済(せつぞくず)み" />
+          <Ruby text="接続済(せつぞくず)み" />
         </span>
       </div>
     )

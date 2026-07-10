@@ -154,7 +154,6 @@ export function Theater() {
         {canExport &&
           (!exporting ? (
             <button className="screen-action" onClick={() => void saveVideo()} disabled={playing}>
-              <Icon name="film" size={16} />
               <Ruby text="動画(どうが)で保存(ほぞん)" />
             </button>
           ) : (

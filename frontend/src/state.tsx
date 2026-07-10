@@ -106,7 +106,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
   const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
   const [autoPlay, setAutoPlay] = useState(boot?.snapshot.autoPlay ?? false)
-  const [gapSec, setGapSec] = useState(boot?.snapshot.gapSec ?? 1)
+  const [gapSec, setGapSec] = useState(boot?.snapshot.gapSec ?? 0.5)
 
   // 「この blob: URL は IndexedDB 保存済み」の対応表（persistWork が更新する）。
   const savedUrlsRef = useRef(new Map<string, string>())

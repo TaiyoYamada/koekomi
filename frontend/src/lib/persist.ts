@@ -93,7 +93,7 @@ export function deserializeWork(saved: SavedWork): {
       started: !!saved.started,
       active: typeof saved.active === 'string' ? saved.active : 'editor',
       autoPlay: !!saved.autoPlay,
-      gapSec: typeof saved.gapSec === 'number' ? saved.gapSec : 1,
+      gapSec: typeof saved.gapSec === 'number' ? saved.gapSec : 0.5,
     },
     idbLineIds,
   }
