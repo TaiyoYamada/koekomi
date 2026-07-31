@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useApp } from './state'
 import { ensureAssignment, assignFreshServer, sendPresence } from './lib/registry'
 import { ServerBadge } from './components/ServerBadge'
@@ -16,6 +16,22 @@ import type { VoiceMode } from './types'
 interface Section {
   meta: SectionMeta
   Comp: () => JSX.Element
+}
+
+/** セクションを常にマウントしたまま、非アクティブは hidden で隠す入れ物。
+ *  タブを移動しても、AI音声の生成・録音・動画の書き出しなどが途中で終わらないようにする
+ *  （アンマウントすると、進行中の状態やスピナーが消えてしまうため）。
+ *  隠れるときは、その中で鳴っている <audio> だけ止める。 */
+function SectionPane({ show, children }: { show: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!show) ref.current?.querySelectorAll('audio').forEach((a) => a.pause())
+  }, [show])
+  return (
+    <div ref={ref} hidden={!show}>
+      {children}
+    </div>
+  )
 }
 
 /** モードごとの画面構成（順番なし。サイドバーで自由に行き来できる）。 */
@@ -78,7 +94,6 @@ export function App() {
 
   const sections = sectionsForMode(mode)
   const activeSection = sections.find((s) => s.meta.key === active) ?? sections[0]
-  const ActiveComp = activeSection.Comp
 
   if (!started)
     return (
@@ -118,7 +133,12 @@ export function App() {
           </div>
         )}
 
-        <ActiveComp />
+        {/* 全セクションをマウントしたまま、アクティブ以外は隠す（動作をタブ移動で切らない）。 */}
+        {sections.map(({ meta, Comp }) => (
+          <SectionPane key={meta.key} show={meta.key === activeSection.meta.key}>
+            <Comp />
+          </SectionPane>
+        ))}
       </main>
     </div>
   )

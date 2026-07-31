@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type SyntheticEvent } from 'react'
 import { StepHead } from '../components/StepHead'
 import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
@@ -12,7 +12,7 @@ export function GenerateVoices() {
   const { assignment, recordingBlob, comas, setLineVoice, beginGenerating, endGenerating } =
     useApp()
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(false)
 
   // テキストのあるセリフだけを対象にする。
   const targets = useMemo(
@@ -21,10 +21,18 @@ export function GenerateVoices() {
   )
   const allDone = targets.length > 0 && targets.every((t) => t.line.voiceUrl)
 
+  /** 同時再生させない：どれかを再生し始めたら、他の <audio> を全部止める。 */
+  function stopOthers(e: SyntheticEvent<HTMLAudioElement>) {
+    const current = e.currentTarget
+    document.querySelectorAll('audio').forEach((a) => {
+      if (a !== current) a.pause()
+    })
+  }
+
   async function run() {
     if (!assignment || !recordingBlob || targets.length === 0) return
     setBusy(true)
-    setError(null)
+    setError(false)
     beginGenerating() // 生成中は録音のやり直し等を止める（負荷を増やさない）
     try {
       const res = await generateComicVoices(assignment.apiUrl, {
@@ -38,7 +46,8 @@ export function GenerateVoices() {
         if (t) setLineVoice(t.line.id, fileUrl(assignment.apiUrl, name))
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      console.error(e) // HTTPコード等の詳細は画面に出さず、コンソールにだけ残す。
+      setError(true)
     } finally {
       setBusy(false)
       endGenerating()
@@ -64,10 +73,9 @@ export function GenerateVoices() {
       )}
       {error && (
         <div className="banner err">
-          <Ruby text="うまくいかなかったよ：" />
-          {error}
+          <Ruby text="うまくいかなかったよ。もう一度(いちど) ためしてね。" />
           <br />
-          <Ruby text="先生(せんせい)に言(い)って、別(べつ)のサーバーにつなぎ直(なお)すか、フォールバックモードを使(つか)ってね。" />
+          <Ruby text="何度(なんど)もだめなら、先生(せんせい)に言(い)って、別(べつ)のサーバーにつなぎ直(なお)すか、フォールバックモードを使(つか)ってね。" />
         </div>
       )}
 
@@ -106,7 +114,9 @@ export function GenerateVoices() {
                     <Ruby text={`${ci + 1}枚目(まいめ)：`} />
                     {l.text}
                   </div>
-                  {l.voiceUrl && <audio src={l.voiceUrl} controls style={{ width: '100%' }} />}
+                  {l.voiceUrl && (
+                    <audio src={l.voiceUrl} controls onPlay={stopOthers} style={{ width: '100%' }} />
+                  )}
                 </div>
               )),
           )}

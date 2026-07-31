@@ -11,15 +11,18 @@ export function SelfRecordComas() {
   const { panels } = usePanels()
   const { comas, setLineVoice } = useApp()
   const [recordingId, setRecordingId] = useState<string | null>(null)
+  const [micError, setMicError] = useState(false)
   const activeRef = useRef<ActiveRecorder | null>(null)
   const supported = isRecordingSupported()
 
   async function start(lineId: string) {
+    setMicError(false)
     try {
       activeRef.current = await startRecording()
       setRecordingId(lineId)
-    } catch {
-      alert('マイクが使えませんでした')
+    } catch (e) {
+      console.error(e)
+      setMicError(true)
     }
   }
 
@@ -43,6 +46,11 @@ export function SelfRecordComas() {
         title="自分(じぶん)で声(こえ)を録音(ろくおん)"
         hint={<Ruby text="セリフごとに声(こえ)に出(だ)して録音(ろくおん)しよう" />}
       />
+      {micError && (
+        <div className="banner err">
+          <Ruby text="マイクが使(つか)えませんでした。設定(せってい)を確認(かくにん)してね。" />
+        </div>
+      )}
       {comas.map((coma, ci) => {
         const panel = findPanel(panels, coma.panelId)
         return (

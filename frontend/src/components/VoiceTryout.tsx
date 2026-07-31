@@ -47,7 +47,8 @@ export function VoiceTryout() {
         if (name) setTryoutVoice(say, fileUrl(apiUrl, name))
         else throw new Error('empty')
       }
-    } catch {
+    } catch (e) {
+      console.error(e) // 詳細は画面に出さず、コンソールにだけ残す。
       setPrepError(true)
     } finally {
       setPreparing(false)
