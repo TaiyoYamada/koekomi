@@ -81,10 +81,25 @@ body {
   font-size: 22px;
   flex: 0 0 auto;
 }
+/* 見出し行（タイトル＋右側のアクションボタン）。 */
+.step-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .step-title {
   font-size: 28px;
   font-weight: 900;
   margin: 0;
+}
+/* 見出し行に複数のアクションボタンを並べるとき用。 */
+.head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .step-hint {
   color: var(--muted);
@@ -157,6 +172,12 @@ button {
   color: var(--ink);
   border: 3px solid #e5e7eb;
 }
+/* 見出し行などに置く控えめサイズ。 */
+.btn.small {
+  font-size: 17px;
+  padding: 10px 14px;
+  border-radius: 14px;
+}
 .btn.big {
   width: 100%;
   font-size: 28px;
@@ -167,6 +188,48 @@ button {
 }
 .btn.stop {
   background: #111827;
+}
+.btn.danger {
+  background: #ef4444;
+  color: #fff;
+}
+/* リセットの確認状態：同じボタンが赤に変わり、ちょっと揺れて注意を引く。
+   下の白いバーは「自動で元に戻るまでの残り時間」（Editor 側の 4000ms と合わせる）。 */
+.btn.reset-armed {
+  position: relative;
+  overflow: hidden;
+  animation: arm-wiggle 0.4s ease;
+}
+.btn.reset-armed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.75);
+  animation: arm-countdown 4s linear forwards;
+}
+@keyframes arm-wiggle {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.08) rotate(-2deg);
+  }
+  60% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes arm-countdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
 }
 /* 無効時のグレーは色付きボタン（rec/stop等）より必ず優先する（定義順で勝たせる） */
 .btn:disabled {
@@ -318,6 +381,16 @@ input[type='text']:focus {
 /* ===== 4コマ劇場プレイヤー ===== */
 .theater {
   text-align: center;
+}
+/* 作品タイトル（スクリーンの上。看板風に中央寄せで大きく）。 */
+.theater-title {
+  width: min(100%, 560px);
+  margin: 0 auto 12px;
+}
+.theater-title input {
+  text-align: center;
+  font-weight: 900;
+  font-size: 26px;
 }
 /* 映画スクリーン風ステージ（写真＋下に字幕オーバーレイ）。 */
 .theater-screen {
@@ -886,6 +959,17 @@ rt {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+/* QRコード表示（動画を別端末に送る）。 */
+.qr-card {
+  max-width: 440px;
+  text-align: center;
+}
+.qr-img {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 12px;
+  border: 3px solid #e5e7eb;
 }
 
 /* ===== 劇場プレイヤー ===== */

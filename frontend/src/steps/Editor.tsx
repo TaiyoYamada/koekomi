@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StepHead } from '../components/StepHead'
 import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
@@ -32,14 +32,43 @@ function ComaPhoto({ src, alt, onPick }: { src: string | null; alt: string; onPi
 /** 編集画面：4コマを縦に並べ、各コマで「写真＋セリフ（追加/編集/削除/並べ替え）」を編集する。 */
 export function Editor() {
   const { panels } = usePanels()
-  const { comas, setComaPanel, moveComa, addLine, updateLine, deleteLine, moveLine } = useApp()
+  const { comas, setComaPanel, moveComa, addLine, updateLine, deleteLine, moveLine, resetComas } =
+    useApp()
   const [pickerFor, setPickerFor] = useState<number | null>(null)
+  // リセットは間違って押しやすいので2段階。同じボタンが赤い「消えるよ！」に変わり、
+  // もう一回押すと実行。数秒ほうっておくと自動で元に戻る。
+  const [confirmReset, setConfirmReset] = useState(false)
+
+  useEffect(() => {
+    if (!confirmReset) return
+    const t = setTimeout(() => setConfirmReset(false), 4000)
+    return () => clearTimeout(t)
+  }, [confirmReset])
 
   return (
     <div>
       <StepHead
         title="編集(へんしゅう)"
         hint={<Ruby text="写真(しゃしん)を選(えら)んで、セリフを書(か)こう。順番(じゅんばん)も変(か)えられるよ。" />}
+        action={
+          !confirmReset ? (
+            <button className="btn secondary small icon-btn" onClick={() => setConfirmReset(true)}>
+              <Icon name="trash" size={16} />
+              <Ruby text="写真(しゃしん)とセリフをリセット" />
+            </button>
+          ) : (
+            <button
+              className="btn small danger icon-btn reset-armed"
+              onClick={() => {
+                resetComas()
+                setConfirmReset(false)
+              }}
+            >
+              <Icon name="trash" size={16} />
+              <Ruby text="もう一回(かい)押(お)すと 消(け)えるよ！" />
+            </button>
+          )
+        }
       />
 
       {comas.map((coma, ci) => {

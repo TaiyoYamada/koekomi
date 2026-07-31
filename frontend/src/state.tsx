@@ -53,6 +53,10 @@ export interface AppState {
   gapSec: number
   setGapSec: (n: number) => void
 
+  // 作品タイトル（劇場で書ける。保存対象）
+  title: string
+  setTitle: (t: string) => void
+
   // 作品データ（コマ＝写真＋セリフ複数）
   comas: Coma[]
   setComaPanel: (comaIndex: number, panelId: string) => void
@@ -65,6 +69,8 @@ export interface AppState {
   setLineVoice: (lineId: string, url: string | null) => void
   /** すべてのセリフの音声URLをクリアする。 */
   clearVoices: () => void
+  /** 写真とセリフを全部消して空のコマに戻す（編集タブのリセット用）。録音・タイトルは残す。 */
+  resetComas: () => void
 
   // 録音（参照音声）
   recordingBlob: Blob | null
@@ -106,6 +112,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [mode, setModeState] = useState<VoiceMode>(() => loadMode())
   const [comas, setComas] = useState<Coma[]>(() => boot?.snapshot.comas ?? emptyComas())
+  const [title, setTitle] = useState(boot?.snapshot.title ?? '')
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null)
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
   const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
@@ -147,10 +154,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // 変更のたびに保存（打鍵中に連続保存しないよう少し待つ）。
   useEffect(() => {
     const t = setTimeout(() => {
-      void persistWork({ comas, started, active, autoPlay, gapSec }, savedUrlsRef.current)
+      void persistWork({ comas, started, active, autoPlay, gapSec, title }, savedUrlsRef.current)
     }, 300)
     return () => clearTimeout(t)
-  }, [comas, started, active, autoPlay, gapSec])
+  }, [comas, started, active, autoPlay, gapSec, title])
 
   function mapComa(comaIndex: number, fn: (c: Coma) => Coma) {
     setComas((prev) => prev.map((c, i) => (i === comaIndex ? fn(c) : c)))
@@ -173,6 +180,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setAutoPlay,
       gapSec,
       setGapSec,
+      title,
+      setTitle,
       comas,
       setComaPanel: (comaIndex, panelId) => mapComa(comaIndex, (c) => ({ ...c, panelId, focusY: 50 })),
       moveComa: (comaIndex, dir) => setComas((prev) => moveItem(prev, comaIndex, dir)),
@@ -207,6 +216,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setComas((prev) =>
           prev.map((c) => ({ ...c, lines: c.lines.map((l) => ({ ...l, voiceUrl: null })) })),
         ),
+      resetComas: () => {
+        setComas(emptyComas())
+        // 消したセリフの保存済み音声（IndexedDB）も片付ける。参照録音（REFERENCE_KEY）は別キーなので残る。
+        for (const id of savedUrlsRef.current.keys()) void idbDeleteAudio(id)
+        savedUrlsRef.current.clear()
+      },
       recordingBlob,
       recordingUrl,
       setRecording: (blob) => {
@@ -229,6 +244,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       endGenerating: () => setGenCount((n) => Math.max(0, n - 1)),
       resetWork: () => {
         setComas(emptyComas())
+        setTitle('')
         setRecordingBlob(null)
         setRecordingUrl((prevUrl) => {
           if (prevUrl) URL.revokeObjectURL(prevUrl)
@@ -241,7 +257,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         void clearWork()
       },
     }),
-    [started, active, assignment, mode, autoPlay, gapSec, comas, recordingBlob, recordingUrl, tryoutVoices, genCount],
+    [started, active, assignment, mode, autoPlay, gapSec, title, comas, recordingBlob, recordingUrl, tryoutVoices, genCount],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

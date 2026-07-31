@@ -35,6 +35,8 @@ export interface SavedWork {
   active: string
   autoPlay: boolean
   gapSec: number
+  /** 作品タイトル（旧データには無いので省略可）。 */
+  title?: string
   comas: SavedComa[]
 }
 
@@ -44,6 +46,7 @@ export interface WorkSnapshot {
   active: string
   autoPlay: boolean
   gapSec: number
+  title: string
 }
 
 // ===== 純粋な変換（テスト対象） =====
@@ -60,6 +63,7 @@ export function serializeWork(snap: WorkSnapshot, markers: Map<string, string | 
     active: snap.active,
     autoPlay: snap.autoPlay,
     gapSec: snap.gapSec,
+    title: snap.title,
     comas: snap.comas.map((c) => ({
       panelId: c.panelId,
       focusY: c.focusY,
@@ -94,6 +98,7 @@ export function deserializeWork(saved: SavedWork): {
       active: typeof saved.active === 'string' ? saved.active : 'editor',
       autoPlay: !!saved.autoPlay,
       gapSec: typeof saved.gapSec === 'number' ? saved.gapSec : 0.5,
+      title: typeof saved.title === 'string' ? saved.title : '',
     },
     idbLineIds,
   }

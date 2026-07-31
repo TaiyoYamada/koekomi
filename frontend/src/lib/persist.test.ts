@@ -22,6 +22,7 @@ const snap = (comas: Coma[]): WorkSnapshot => ({
   active: 'theater',
   autoPlay: true,
   gapSec: 2,
+  title: 'ねこの一日',
 })
 
 beforeEach(() => {
@@ -42,6 +43,14 @@ describe('serializeWork / deserializeWork', () => {
     expect(snapshot.active).toBe('theater')
     expect(snapshot.autoPlay).toBe(true)
     expect(snapshot.gapSec).toBe(2)
+    expect(snapshot.title).toBe('ねこの一日')
+  })
+
+  it('タイトルが無い旧データは空文字で復元する', () => {
+    const saved = serializeWork(snap([coma('p', 50, [line('l1', 'あ')])]), new Map())
+    delete saved.title
+    const { snapshot } = deserializeWork(saved)
+    expect(snapshot.title).toBe('')
   })
 
   it('サーバーURLの音声はそのまま、idb印は null + 復元リスト行き', () => {
