@@ -33,7 +33,7 @@ koekomi/
 │   └── scripts/         パネル画像ジェネレーター
 ├── backend/         FastAPI。adapter層でQwenTTSに差し替え可
 │   └── app/
-│       ├── routes/      /health /generate-comic-voices /files /cleanup
+│       ├── routes/      /health /generate-comic-voices /files /upload-video /cleanup
 │       ├── services/    audio(ffmpeg) / tts（サービス層）
 │       └── adapters/    dummy / qwen（adapter層）
 ├── colab/           Colabでバックエンドを起動するコード（runner + notebook）

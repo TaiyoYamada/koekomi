@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { StepHead } from '../components/StepHead'
 import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
 import { findPanel, usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import { speak, stopSpeaking } from '../lib/speech'
+import { fileUrl, uploadVideo } from '../lib/api'
 import { downloadBlob, exportTheaterVideo, isVideoExportSupported } from '../lib/export-video'
 import type { Line } from '../types'
 
@@ -17,7 +19,8 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
  */
 export function Theater() {
   const { panels } = usePanels()
-  const { comas, mode, autoPlay: auto, setAutoPlay: setAuto, gapSec, setGapSec } = useApp()
+  const { comas, mode, autoPlay: auto, setAutoPlay: setAuto, gapSec, setGapSec, title, setTitle, active, assignment } =
+    useApp()
   const [current, setCurrent] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [playingLineId, setPlayingLineId] = useState<string | null>(null)
@@ -26,11 +29,38 @@ export function Theater() {
 
   const [exporting, setExporting] = useState(false)
   const [exportPct, setExportPct] = useState(0)
-  const [exportError, setExportError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+
+  // 書き出し済みの動画（別端末への送信に使い回す）。
+  const [lastExport, setLastExport] = useState<{ blob: Blob; ext: 'mp4' | 'webm' } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  // アップロード済みQRのキャッシュ（同じ動画を二度アップロードしない）。
+  const [qr, setQr] = useState<{ img: string; expiresSec: number } | null>(null)
+  const [qrOpen, setQrOpen] = useState(false)
+  const qrForRef = useRef<Blob | null>(null)
 
   // 読み上げモードの声（speechSynthesis）は録音できないので、書き出しは出さない。
   const canExport = useMemo(() => mode !== 'browser-tts' && isVideoExportSupported(), [mode])
+
+  // AirDrop（共有シート）でファイルを送れる環境か（iPad/iPhone の Safari など）。
+  const canShareFiles = useMemo(() => {
+    if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return false
+    try {
+      return navigator.canShare({ files: [new File([], 'koekomi.mp4', { type: 'video/mp4' })] })
+    } catch {
+      return false
+    }
+  }, [])
+
+  // 作品や再生設定が変わったら、書き出し済みの動画は古くなるので捨てる。
+  useEffect(() => {
+    setLastExport(null)
+    setQr(null)
+    setQrOpen(false)
+    qrForRef.current = null
+  }, [comas, gapSec])
 
   useEffect(() => {
     return () => {
@@ -94,14 +124,25 @@ export function Theater() {
     setPlayingLineId(null)
   }
 
+  // 別のタブへ移ったら再生だけ止める（動画の書き出しは裏で続ける）。
+  useEffect(() => {
+    if (active !== 'theater') stop()
+  }, [active])
+
   function go(ci: number) {
     stop()
     setCurrent(Math.max(0, Math.min(comas.length - 1, ci)))
   }
 
+  /** タイトルが書いてあればファイル名に使う（ファイル名に使えない文字は除く）。 */
+  function exportFileName(ext: string): string {
+    const safe = title.trim().replace(/[\\/:*?"<>|]/g, '')
+    return `${safe || 'koekomi-4koma'}.${ext}`
+  }
+
   async function saveVideo() {
     stop()
-    setExportError(null)
+    setExportError(false)
     setExportPct(0)
     setExporting(true)
     const ctrl = new AbortController()
@@ -114,14 +155,64 @@ export function Theater() {
         signal: ctrl.signal,
         onProgress: (r) => setExportPct(Math.round(r * 100)),
       })
-      downloadBlob(blob, `koekomi-4koma.${ext}`)
+      downloadBlob(blob, exportFileName(ext))
+      // 別端末への送信（QR / AirDrop）に使い回せるよう保持しておく。
+      setLastExport({ blob, ext })
     } catch (e) {
       if (!(e instanceof DOMException && e.name === 'AbortError')) {
-        setExportError(e instanceof Error ? e.message : String(e))
+        console.error(e) // 詳細は画面に出さず、コンソールにだけ残す。
+        setExportError(true)
       }
     } finally {
       setExporting(false)
       abortRef.current = null
+    }
+  }
+
+  /** 動画を Colab に一時保存し、ダウンロードURLのQRコードを表示する。 */
+  async function sendQr() {
+    if (!lastExport || !assignment) return
+    // 同じ動画をアップロード済みならQRを出し直すだけ。
+    if (qr && qrForRef.current === lastExport.blob) {
+      setQrOpen(true)
+      return
+    }
+    setSendError(null)
+    setUploading(true)
+    try {
+      const { filename, expiresSec } = await uploadVideo(assignment.apiUrl, lastExport.blob, lastExport.ext)
+      const link = fileUrl(assignment.apiUrl, filename)
+      const img = await QRCode.toDataURL(link, { width: 640, margin: 2 })
+      qrForRef.current = lastExport.blob
+      setQr({ img, expiresSec })
+      setQrOpen(true)
+    } catch (e) {
+      console.error(e) // HTTPコード等の詳細は画面に出さない。
+      setSendError('動画(どうが)を 送(おく)れなかったよ。もう一度(いちど) ためしてね。')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  /** AirDrop（共有シート）で動画を送る。 */
+  async function shareVideo() {
+    if (!lastExport) return
+    setSendError(null)
+    const file = new File([lastExport.blob], exportFileName(lastExport.ext), {
+      type: lastExport.blob.type || `video/${lastExport.ext}`,
+    })
+    try {
+      await navigator.share({ files: [file] })
+    } catch (e) {
+      // 共有シートを閉じただけ（AbortError）は何もしない。
+      if (e instanceof DOMException && e.name === 'AbortError') return
+      console.error(e)
+      // この端末では共有が許可されていない（デスクトップChrome等）。QRを案内する。
+      if (e instanceof DOMException && e.name === 'NotAllowedError') {
+        setSendError('この端末(たんまつ)では 共有(きょうゆう)できなかったよ。QRコードを 使(つか)ってね。')
+        return
+      }
+      setSendError('動画(どうが)を 送(おく)れなかったよ。もう一度(いちど) ためしてね。')
     }
   }
 
@@ -139,7 +230,45 @@ export function Theater() {
       <StepHead
         title="4コマ劇場(げきじょう)を見(み)る"
         hint={<Ruby text="1コマずつめくって見(み)よう。自動(じどう)でめくることもできるよ。" />}
+        action={
+          lastExport && !exporting && (assignment || canShareFiles) ? (
+            <div className="head-actions">
+              {assignment && (
+                <button
+                  className="btn secondary small"
+                  onClick={() => void sendQr()}
+                  disabled={uploading}
+                >
+                  <Ruby text={uploading ? 'じゅんびしているよ…' : 'QRコードで送(おく)る'} />
+                </button>
+              )}
+              {canShareFiles && (
+                <button className="btn secondary small" onClick={() => void shareVideo()}>
+                  <Ruby text="AirDropで送(おく)る" />
+                </button>
+              )}
+            </div>
+          ) : undefined
+        }
       />
+
+      {sendError && (
+        <div className="banner err">
+          <Ruby text={sendError} />
+        </div>
+      )}
+
+      {/* 作品タイトル（書ける。保存もされる） */}
+      <div className="theater-title">
+        <input
+          type="text"
+          value={title}
+          maxLength={30}
+          placeholder="タイトルを かいてね"
+          onChange={(e) => setTitle(e.target.value)}
+          aria-label="作品のタイトル"
+        />
+      </div>
 
       <div className="theater-screen">
         {panel ? (
@@ -245,7 +374,32 @@ export function Theater() {
 
       {exportError && (
         <div className="banner err">
-          <Ruby text="動画(どうが)を保存(ほぞん)できませんでした。" /> {exportError}
+          <Ruby text="動画(どうが)を 保存(ほぞん)できなかったよ。もう一度(いちど) ためしてね。" />
+        </div>
+      )}
+
+      {/* QRコード表示（受け取る側がカメラで読む） */}
+      {qrOpen && qr && (
+        <div className="picker-overlay" onClick={() => setQrOpen(false)}>
+          <div className="picker-card qr-card" onClick={(e) => e.stopPropagation()}>
+            <div className="picker-head">
+              <strong>
+                <Ruby text="QRコードで受(う)け取(と)る" />
+              </strong>
+              <button className="btn secondary" onClick={() => setQrOpen(false)}>
+                <Ruby text="閉(と)じる" />
+              </button>
+            </div>
+            <img className="qr-img" src={qr.img} alt="動画ダウンロード用QRコード" />
+            <p className="step-hint">
+              <Ruby text="別(べつ)の端末(たんまつ)のカメラで読(よ)み取(と)ってね。" />
+            </p>
+            <p className="step-hint">
+              <Ruby
+                text={`動画(どうが)は ${Math.round(qr.expiresSec / 60)}分(ぷん)たつと 自動(じどう)で消(き)えるよ。`}
+              />
+            </p>
+          </div>
         </div>
       )}
 

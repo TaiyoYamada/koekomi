@@ -69,6 +69,40 @@ export async function generateComicVoices(
   return (await res.json()) as GenerateVoicesResponse
 }
 
+/**
+ * 書き出した動画を Colab に一時保存する（QRコードで別端末に渡す用）。
+ * サーバーが uuid のファイル名を割り当て、TTL（既定30分）後に自動削除する。
+ * 返り値の filename を fileUrl() に渡すとダウンロードURLになる。
+ */
+export async function uploadVideo(
+  apiUrl: string,
+  blob: Blob,
+  ext: 'mp4' | 'webm',
+  timeoutMs = 120_000,
+): Promise<{ filename: string; expiresSec: number }> {
+  const fd = new FormData()
+  fd.append('video', blob, `koekomi.${ext}`)
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  let res: Response
+  try {
+    res = await fetch(`${base(apiUrl)}/upload-video`, {
+      method: 'POST',
+      body: fd,
+      signal: ctrl.signal,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('動画のアップロードがtimeoutしました。もう一度お試しください。')
+    }
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+  if (!res.ok) throw new Error(`動画のアップロードに失敗しました (HTTP ${res.status})`)
+  return (await res.json()) as { filename: string; expiresSec: number }
+}
+
 /** 生成物の後片付けを依頼する（任意）。 */
 export async function cleanup(apiUrl: string): Promise<void> {
   await fetch(`${base(apiUrl)}/cleanup`, { method: 'POST' })

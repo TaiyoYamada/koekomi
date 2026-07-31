@@ -60,6 +60,41 @@ def test_cleanup_removes_files(client, fake_audio):
     assert not any(settings.output_dir.iterdir())
 
 
+def test_upload_video_roundtrip(client):
+    """動画をアップロードすると uuid 名で保存され、/files から取得できる。"""
+    res = client.post(
+        "/upload-video",
+        files={"video": ("koekomi.mp4", b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64, "video/mp4")},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["filename"].startswith("video-") and body["filename"].endswith(".mp4")
+    assert body["expiresSec"] == settings.video_ttl_sec
+    got = client.get(f"/files/{body['filename']}")
+    assert got.status_code == 200
+
+
+def test_upload_video_rejects_bad_extension(client):
+    res = client.post(
+        "/upload-video",
+        files={"video": ("evil.exe", b"MZ", "application/octet-stream")},
+    )
+    assert res.status_code == 400
+
+
+def test_upload_video_rejects_too_large(client):
+    old = settings.video_max_mb
+    settings.video_max_mb = 0  # 上限0MBにして必ず超過させる
+    try:
+        res = client.post(
+            "/upload-video",
+            files={"video": ("koekomi.webm", b"\x00" * 1024, "video/webm")},
+        )
+        assert res.status_code == 413
+    finally:
+        settings.video_max_mb = old
+
+
 def test_generation_lock_released_after_request(client, fake_audio):
     from app.locks import generation_lock
 

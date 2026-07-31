@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .locks import generation_lock
-from .routes import cleanup, files, generate, health
+from .routes import cleanup, files, generate, health, videos
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("vct")
@@ -70,6 +70,7 @@ app.include_router(health.router)
 app.include_router(generate.router)
 app.include_router(files.router)
 app.include_router(cleanup.router)
+app.include_router(videos.router)
 
 
 @app.get("/")

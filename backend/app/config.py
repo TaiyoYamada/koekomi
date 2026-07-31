@@ -27,6 +27,10 @@ class Settings:
     output_dir: Path = field(default_factory=lambda: Path(os.getenv("OUTPUT_DIR", "output")))
     tmp_dir: Path = field(default_factory=lambda: Path(os.getenv("TMP_DIR", "tmp")))
 
+    # 動画の一時保存（QRコードで別端末に渡す用）。子どもの声が入るので長く残さない。
+    video_ttl_sec: int = field(default_factory=lambda: int(os.getenv("VIDEO_TTL_SEC", "1800")))
+    video_max_mb: int = field(default_factory=lambda: int(os.getenv("VIDEO_MAX_MB", "100")))
+
     cors_origins: str = field(default_factory=lambda: os.getenv("CORS_ORIGINS", "*"))
     ffmpeg_bin: str = field(default_factory=lambda: os.getenv("FFMPEG_BIN", "ffmpeg"))
 
