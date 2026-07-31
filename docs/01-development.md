@@ -5,7 +5,6 @@
 - Node.js 18 以上
 - Python 3.10 以上
 - （任意）ffmpeg … 録音を wav に変換する。無くてもダミーでは動く。
-- （任意）ngrok … iPad 実機確認や Colab 公開に使う。
 
 ---
 

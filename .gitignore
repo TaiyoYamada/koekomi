@@ -21,4 +21,3 @@ backend/.env
 
 # Colab / runtime
 colab/.env
-*.ngrok.yml

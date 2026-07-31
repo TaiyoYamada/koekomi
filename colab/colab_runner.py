@@ -1,5 +1,5 @@
 """
-Colab 上で FastAPI バックエンドを起動し、ngrok で公開して GAS に登録する。
+Colab 上で FastAPI バックエンドを起動し、Cloudflare Quick Tunnel で公開して GAS に登録する。
 
 Colab のノートブック最後のセルで実行する想定:
 
@@ -7,7 +7,6 @@ Colab のノートブック最後のセルで実行する想定:
     %cd koekomi
     # 秘密情報は Colab の「シークレット」または os.environ で渡す（直書きしない）
     import os
-    os.environ["NGROK_AUTHTOKEN"] = "..."   # 例: userdata.get('NGROK_AUTHTOKEN')
     os.environ["GAS_URL"]         = "https://script.google.com/macros/s/XXXX/exec"
     os.environ["SERVER_ID"]       = "colab-1"
     os.environ["SERVER_COLOR"]    = "red"
@@ -31,11 +30,7 @@ import urllib.request
 import requests
 
 # ---- 設定（すべて環境変数から）-------------------------------------------
-# 公開トンネルの種類: "ngrok"（既定） / "cloudflare"
-#   - ngrok      : 1アカウント1トンネル。手元での確認向き（NGROK_AUTHTOKEN が必要）
-#   - cloudflare : Quick Tunnel。無料で複数同時OK・警告ページ無し。本番(5〜10台)向き（鍵不要）
-TUNNEL = os.environ.get("TUNNEL", "ngrok").lower()
-NGROK_AUTHTOKEN = os.environ.get("NGROK_AUTHTOKEN", "")
+# 公開トンネルは Cloudflare Quick Tunnel（無料・鍵不要・複数台同時OK・警告ページ無し）。
 GAS_URL = os.environ.get("GAS_URL", "")
 SERVER_ID = os.environ.get("SERVER_ID", "colab-1")
 SERVER_COLOR = os.environ.get("SERVER_COLOR", "blue")
@@ -109,18 +104,6 @@ def start_backend() -> threading.Thread | None:
         except requests.RequestException:
             time.sleep(1)
     return t
-
-
-def open_ngrok() -> str:
-    print("[3/5] ngrok で外部公開中…")
-    from pyngrok import conf, ngrok
-
-    if NGROK_AUTHTOKEN:
-        conf.get_default().auth_token = NGROK_AUTHTOKEN
-    tunnel = ngrok.connect(PORT, "http")
-    url = tunnel.public_url.replace("http://", "https://")
-    print(f"   公開URL: {url}")
-    return url
 
 
 # cloudflared プロセスはトンネルの本体。GC されないよう参照を保持しておく。
@@ -220,7 +203,7 @@ def open_cloudflare() -> str:
 
     raise RuntimeError(
         "Cloudflare Quick Tunnel を3回試しましたが張れませんでした。"
-        "上の出力を確認してください。急ぎの場合は TUNNEL=ngrok でも起動できます。"
+        "上の出力を確認してください。少し時間を置いて再実行してください。"
     )
 
 
@@ -229,13 +212,6 @@ def _drain(proc: subprocess.Popen) -> None:
         return
     for _ in proc.stdout:
         pass
-
-
-def open_tunnel() -> str:
-    """TUNNEL 環境変数に応じて公開トンネルを選ぶ。"""
-    if TUNNEL == "cloudflare":
-        return open_cloudflare()
-    return open_ngrok()
 
 
 def post_gas(action: str, payload: dict, retries: int = 1) -> requests.Response:
@@ -296,7 +272,7 @@ def heartbeat_loop(api_url: str) -> None:
 def main() -> None:
     install_dependencies()
     start_backend()
-    api_url = open_tunnel()
+    api_url = open_cloudflare()
     register_to_gas(api_url)
     print("\n✅ 準備完了。このセルは動かしたままにしてください。")
     print(f"   tunnel={TUNNEL} serverId={SERVER_ID} color={SERVER_COLOR} url={api_url}\n")

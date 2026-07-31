@@ -11,9 +11,7 @@
     "build": "npm run build --workspace frontend",
     "preview": "npm run preview --workspace frontend",
     "panels": "node frontend/scripts/generate-panels.mjs",
-    "backend:dev": "echo 'cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'",
-    "ngrok:front": "ngrok http 5173",
-    "ngrok:back": "ngrok http 8000"
+    "backend:dev": "echo 'cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'"
   },
   "engines": {
     "node": ">=18"

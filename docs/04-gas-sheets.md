@@ -56,7 +56,7 @@ serverId | color | label | apiUrl | enabled | capacity | assignedCount | lastSee
 ```json
 { "servers": [
   { "serverId":"colab-1","color":"red","label":"赤サーバー",
-    "apiUrl":"https://xxxx.ngrok-free.app","enabled":true,
+    "apiUrl":"https://xxxx.trycloudflare.com","enabled":true,
     "capacity":2,"assignedCount":1,"lastSeen":1719223456000 }
 ]}
 ```

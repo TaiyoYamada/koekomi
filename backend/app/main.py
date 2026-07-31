@@ -57,7 +57,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="コエコミ API", version="1.0.0", lifespan=lifespan)
 
-# CORS: React フロント（固定URL / ngrok / localhost）からアクセスできるように。
+# CORS: React フロント（固定URL / localhost）からアクセスできるように。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_list(),

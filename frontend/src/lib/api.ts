@@ -1,4 +1,4 @@
-// FastAPI バックエンド（Colab + ngrok）との通信。
+// FastAPI バックエンド（Colab + Cloudflare Tunnel）との通信。
 
 import type { GenerateVoicesResponse } from '../types'
 
@@ -17,11 +17,7 @@ export async function checkHealth(apiUrl: string, timeoutMs = 5000): Promise<boo
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const res = await fetch(`${base(apiUrl)}/health`, {
-      signal: ctrl.signal,
-      // ngrok の警告ページを避ける（ブラウザ向けヘッダ）。
-      headers: { 'ngrok-skip-browser-warning': 'true' },
-    })
+    const res = await fetch(`${base(apiUrl)}/health`, { signal: ctrl.signal })
     return res.ok
   } catch {
     return false
@@ -29,8 +25,6 @@ export async function checkHealth(apiUrl: string, timeoutMs = 5000): Promise<boo
     clearTimeout(timer)
   }
 }
-
-const commonHeaders = { 'ngrok-skip-browser-warning': 'true' }
 
 /**
  * セリフぶんの AI 音声を生成する。
@@ -60,7 +54,6 @@ export async function generateComicVoices(
   try {
     res = await fetch(`${base(apiUrl)}/generate-comic-voices`, {
       method: 'POST',
-      headers: commonHeaders,
       body: fd,
       signal: ctrl.signal,
     })
@@ -78,5 +71,5 @@ export async function generateComicVoices(
 
 /** 生成物の後片付けを依頼する（任意）。 */
 export async function cleanup(apiUrl: string): Promise<void> {
-  await fetch(`${base(apiUrl)}/cleanup`, { method: 'POST', headers: commonHeaders })
+  await fetch(`${base(apiUrl)}/cleanup`, { method: 'POST' })
 }

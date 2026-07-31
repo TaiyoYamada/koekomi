@@ -11,7 +11,7 @@ flowchart TD
     iPad["子どものiPad<br/>(固定URLを開くだけ)"] -->|React フロント| Front["React + TypeScript"]
     Front -->|"① 起動時に使えるColab一覧を取得 (list)"| GAS["GAS + Google Sheets<br/>(サーバーレジストリ)"]
     Front -->|"② 空きColabを自動割り当て<br/>localStorage に保存"| GAS
-    Colab["Colab #1..#10<br/>(FastAPI + ngrok)"] -->|register / heartbeat| GAS
+    Colab["Colab #1..#10<br/>(FastAPI + Cloudflare Tunnel)"] -->|register / heartbeat| GAS
     Front -->|"AI音声生成<br/>(割り当てられた apiUrl へ)"| Colab
 ```
 
@@ -46,7 +46,6 @@ koekomi/
 | ドキュメント | 内容 |
 |---|---|
 | [docs/01-development.md](docs/01-development.md) | 開発環境の起動方法 |
-| [docs/02-ngrok-ipad.md](docs/02-ngrok-ipad.md) | ngrok を使って iPad から確認する方法 |
 | [docs/03-colab-backend.md](docs/03-colab-backend.md) | Colab でバックエンドを起動する方法 |
 | [docs/04-gas-sheets.md](docs/04-gas-sheets.md) | GAS + Google Sheets の準備方法 |
 | [docs/05-fallback.md](docs/05-fallback.md) | Colab が落ちた時のフォールバック手順 |
@@ -85,31 +84,21 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## 2. 開発中に ngrok で公開する方法
+## 2. 開発中に iPad から確認する方法
 
-開発中、iPad から実機確認するには ngrok でトンネルを張ります。詳細は [docs/02-ngrok-ipad.md](docs/02-ngrok-ipad.md)。
-
-```bash
-# フロントを公開（Vite は allowedHosts を許可済み）
-npm run ngrok:front      # = ngrok http 5173
-
-# バックを公開
-npm run ngrok:back       # = ngrok http 8000
-```
-
-- 本番では **フロントは固定URLでホスティング**し、**バックエンドだけ Colab + ngrok** で公開します。
-- ブラウザ録音（マイク）は **HTTPS が必須**です。ngrok / ホスティングはどちらも HTTPS なので問題ありません。
+- iPad と PC を同じネットワークにつなぎ、`http://<PCのIP>:5173` を開きます（Vite は host を開放済み）。
+- ブラウザ録音（マイク）は **HTTPS が必須**です。録音まで確認するときは、ホスティング（固定URL）のプレビュー環境か、`cloudflared tunnel --url http://localhost:5173` で一時公開して確認します。
+- 本番では **フロントは固定URLでホスティング**し、**バックエンドだけ Colab + Cloudflare Tunnel** で公開します。
 
 ---
 
 ## 3. iPad で動作確認する方法
 
-1. iPad と PC を同じネットワークにするか、ngrok の HTTPS URL を使う。
+1. iPad と PC を同じネットワークにするか、ホスティングの HTTPS URL を使う。
 2. iPad の Safari でフロントの URL を開く（**QRは必須ではありません**。固定URLを開くだけ）。
 3. 予備として共通QRを配ってもOK（同じURLを指すだけ）。
 4. 画面上部に **「あなたは ○サーバー です」** と接続先の色が表示されます。
 5. マイク許可のダイアログが出たら「許可」。
-6. 詳細・トラブルシュートは [docs/02-ngrok-ipad.md](docs/02-ngrok-ipad.md)。
 
 ---
 
@@ -122,7 +111,6 @@ npm run ngrok:back       # = ngrok http 8000
 # Colab の最後のセル（詳細は colab/start_backend.ipynb）
 import os
 os.environ['GAS_URL']      = userdata.get('GAS_URL')   # 直書きしない
-os.environ['TUNNEL']       = 'cloudflare'              # 本番は Cloudflare 固定
 os.environ['SERVER_ID']    = 'colab-1'
 os.environ['SERVER_COLOR'] = 'red'
 os.environ['SERVER_LABEL'] = '赤サーバー'
@@ -132,8 +120,7 @@ os.environ['CAPACITY']     = '2'        # 1台 1〜2人
 
 `colab_runner.py` が **依存インストール → FastAPI起動 → トンネル公開 → GAS登録 → heartbeat送信** まで自動で行います。
 
-**本番は Cloudflare Quick Tunnel を使います**（`TUNNEL='cloudflare'`）。無料・アカウント/鍵不要で**複数台を同時公開**でき、警告ページも出ません。`cloudflared` を自動取得して `*.trycloudflare.com` を発行 → GAS に登録します。
-ngrok（`TUNNEL='ngrok'`）は1アカウント＝同時1トンネルのため、**開発中に手元の1台を iPad 確認する用途のみ**に使います。GASがURLを仲介するのでフロントはどちらでも無修正です。
+**公開は Cloudflare Quick Tunnel を使います**。無料・アカウント/鍵不要で**複数台を同時公開**でき、警告ページも出ません。`cloudflared` を自動取得して `*.trycloudflare.com` を発行 → GAS に登録します。GASがURLを仲介するので、公開URLが変わってもフロントは無修正です。
 
 手順の全体は [docs/03-colab-backend.md](docs/03-colab-backend.md)。
 
@@ -144,7 +131,7 @@ ngrok（`TUNNEL='ngrok'`）は1アカウント＝同時1トンネルのため、
 GAS + Google Sheets を**簡易サーバーレジストリ**として使います（外部DBは使いません）。
 Sheets の列: `serverId | color | label | apiUrl | enabled | capacity | assignedCount | lastSeen`
 
-1. **register**: Colab 起動時、`colab_runner.py` がトンネルの公開URL（Cloudflare/ngrok）を GAS に登録（`apiUrl` 保存・`assignedCount=0`・`lastSeen` 更新）。
+1. **register**: Colab 起動時、`colab_runner.py` がトンネルの公開URL（Cloudflare）を GAS に登録（`apiUrl` 保存・`assignedCount=0`・`lastSeen` 更新）。
 2. **heartbeat**: 一定間隔（既定30秒）で `lastSeen` を更新。生きているサーバーだけが「新しい」状態になる。
 3. **list**: React 起動時に `?action=list` で一覧取得。
 4. **assign**: 割り当て確定時に `assignedCount` を +1。
@@ -222,8 +209,7 @@ ruff format --check . # フォーマット確認
 | バックエンド | FastAPI |
 | AI実行環境 | Google Colab |
 | 音声生成（TTS） | Qwen3-TTS（既定）／ dummy にも切替可 |
-| 本番の外部公開（トンネル） | **Cloudflare Quick Tunnel**（無料・複数台同時・鍵不要） |
-| 開発時の外部公開 | ngrok（手元1台の iPad 確認用） |
+| 外部公開（トンネル） | **Cloudflare Quick Tunnel**（無料・複数台同時・鍵不要） |
 | Colabサーバー管理 | GAS + Google Sheets |
 | 端末ごとの接続先保存 | localStorage |
 | 外部DB | 使わない |

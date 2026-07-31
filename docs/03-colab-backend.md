@@ -8,12 +8,9 @@
 
 - GAS をデプロイ済みで `GAS_URL`(/exec) がある（[04-gas-sheets.md](04-gas-sheets.md)）。
 - リポジトリが GitHub などから `git clone` できる（private の場合は認証が必要なので public 推奨）。
-- 公開トンネルを選ぶ:
-  - **Cloudflare Quick Tunnel（本番おすすめ）**: 無料・アカウント/鍵/ドメイン不要・複数台同時OK・警告ページ無し。`TUNNEL=cloudflare`
-  - **ngrok（手元の確認向き）**: 1アカウント＝同時1トンネル。`TUNNEL=ngrok` ＋ authtoken が必要。
+- 公開トンネルは **Cloudflare Quick Tunnel**: 無料・アカウント/鍵/ドメイン不要・複数台同時OK・警告ページ無し。
 
-> **使い分けの目安**: 本番（5〜10台）は Cloudflare、開発中に手元の1台を iPad 確認するときは ngrok。
-> GAS が URL を仲介するので、どちらに変えても **フロントは無修正** です。
+> GAS が URL を仲介するので、公開URLが変わっても **フロントは無修正** です。
 
 ---
 
@@ -30,7 +27,7 @@
 
 ### セル2: 設定（秘密情報はシークレットから）
 
-Colab 左の 🔑（シークレット）に少なくとも `GAS_URL` を登録します（`TUNNEL=ngrok` のときだけ `NGROK_AUTHTOKEN` も）。
+Colab 左の 🔑（シークレット）に `GAS_URL` を登録します。
 登録後、`userdata.get(...)` を実行すると「このノートブックからアクセスを許可しますか？」と出るので **「許可」** します（ノートブックごとに1回）。
 
 ```python
@@ -38,11 +35,6 @@ import os
 from google.colab import userdata
 
 os.environ['GAS_URL'] = userdata.get('GAS_URL')
-
-# 公開トンネル: 本番は 'cloudflare'（鍵不要・複数台OK）。手元のngrokを使うなら 'ngrok'。
-os.environ['TUNNEL'] = 'cloudflare'
-if os.environ['TUNNEL'] == 'ngrok':
-    os.environ['NGROK_AUTHTOKEN'] = userdata.get('NGROK_AUTHTOKEN')
 
 os.environ['SERVER_ID']    = 'colab-1'   # 台ごとに変える
 os.environ['SERVER_COLOR'] = 'red'       # 台ごとに変える
@@ -63,8 +55,8 @@ os.environ['CAPACITY']     = '2'         # 1台 1〜2人
 
 1. `backend/requirements.txt` をインストール
 2. FastAPI を別スレッドで起動（`uvicorn`）
-3. トンネルでHTTPS公開URLを発行（`TUNNEL` に応じて Cloudflare か ngrok）
-   - Cloudflare の場合は `cloudflared` を自動ダウンロードして `*.trycloudflare.com` を発行
+3. Cloudflare Quick Tunnel でHTTPS公開URLを発行
+   - `cloudflared` を自動ダウンロードして `*.trycloudflare.com` を発行
 4. そのURLを GAS に `register`
 5. 30秒ごとに GAS へ `heartbeat`（`lastSeen` 更新）
 
@@ -91,19 +83,11 @@ os.environ['CAPACITY']     = '2'         # 1台 1〜2人
 
 ---
 
-## トンネルの選び方（Cloudflare / ngrok）
-
-`TUNNEL` 環境変数で切り替えます。GAS が URL を仲介するので、どちらでも **フロントは無修正**。
-
-### Cloudflare Quick Tunnel（本番おすすめ）
-
-```python
-os.environ['TUNNEL'] = 'cloudflare'   # GAS_URL だけ登録すればOK（鍵・アカウント不要）
-```
+## 公開トンネル（Cloudflare Quick Tunnel）
 
 - `colab_runner.py` が `cloudflared` を自動ダウンロードし、`https://〇〇.trycloudflare.com` を発行 → GAS に登録。
-- **無料で複数台同時OK**。ngrok の「1アカウント1トンネル」制限を回避できる＝5〜10台に向く。
-- ngrok のような警告ページが出ないため、`<audio>` での音声再生も素直に通る。
+- **無料で複数台同時OK**（アカウント・鍵不要）＝5〜10台に向く。
+- 警告ページが出ないため、`<audio>` での音声再生も素直に通る。
 - 注意: Quick Tunnel は無保証（テスト用）。まれに切断され、再接続で URL が変わる。
   → アプリ側が `/health` 失敗を検知して自動で別 Colab へ再割り当てするので復旧可能。
 
@@ -114,16 +98,6 @@ os.environ['TUNNEL'] = 'cloudflare'   # GAS_URL だけ登録すればOK（鍵・
 cloudflared tunnel --url http://localhost:8000
 # 出力される https://〇〇.trycloudflare.com が公開URL
 ```
-
-### ngrok（手元の確認向き）
-
-```python
-os.environ['TUNNEL'] = 'ngrok'
-os.environ['NGROK_AUTHTOKEN'] = userdata.get('NGROK_AUTHTOKEN')  # 必須
-```
-
-- 1アカウント＝同時1トンネル。開発中に手元の1台を iPad で確認する用途に向く。
-- 複数台必要な本番では、アカウントを台数ぶん分けるか有料プランが必要。
 
 ---
 
