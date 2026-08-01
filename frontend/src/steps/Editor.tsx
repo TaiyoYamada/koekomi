@@ -7,7 +7,8 @@ import { findPanel, usePanels } from '../hooks/usePanels'
 import { useApp } from '../state'
 import { MAX_LINES_PER_COMA } from '../types'
 
-/** コマの写真。中央固定のトリミングで表示する（パネルは全部同じ比率なので調整不要）。 */
+/** コマの写真。中央固定のトリミングで表示する（パネルは全部同じ比率なので調整不要）。
+ *  写真のどこを押しても選び直せる（写真全体が1つのボタン）。 */
 function ComaPhoto({ src, alt, onPick }: { src: string | null; alt: string; onPick: () => void }) {
   if (!src) {
     return (
@@ -20,12 +21,9 @@ function ComaPhoto({ src, alt, onPick }: { src: string | null; alt: string; onPi
   }
 
   return (
-    <div className="coma-photo has-photo">
+    <button className="coma-photo has-photo" onClick={onPick} aria-label="写真を変える">
       <img src={src} alt={alt} draggable={false} />
-      <button className="photo-change" onClick={onPick}>
-        <Ruby text="写真(しゃしん)を変(か)える" />
-      </button>
-    </div>
+    </button>
   )
 }
 
