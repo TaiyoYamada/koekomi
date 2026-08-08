@@ -275,7 +275,7 @@ def main() -> None:
     api_url = open_cloudflare()
     register_to_gas(api_url)
     print("\n✅ 準備完了。このセルは動かしたままにしてください。")
-    print(f"   tunnel={TUNNEL} serverId={SERVER_ID} color={SERVER_COLOR} url={api_url}\n")
+    print(f"   serverId={SERVER_ID} color={SERVER_COLOR} url={api_url}\n")
     try:
         heartbeat_loop(api_url)
     except KeyboardInterrupt:
