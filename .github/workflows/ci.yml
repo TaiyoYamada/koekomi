@@ -24,9 +24,9 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Generate panel images
-        run: npm run panels
-
+      # パネル画像は実画像を frontend/public/panels/ にコミット済みなので、
+      # ここで生成しない。npm run panels はダミーSVGと manifest.json を
+      # 上書きしてしまい、本番と違う構成でビルドすることになる。
       - name: Lint
         run: npm run lint --workspace frontend
 
