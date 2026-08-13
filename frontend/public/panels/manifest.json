@@ -55,6 +55,41 @@
     "label": "ひよこくす玉"
   },
   {
+    "id": "chick-singing",
+    "src": "/panels/chick-singing.jpg",
+    "label": "ひよこ歌"
+  },
+  {
+    "id": "chick-camera",
+    "src": "/panels/chick-camera.jpg",
+    "label": "ひよこ写真"
+  },
+  {
+    "id": "chick-wedding",
+    "src": "/panels/chick-wedding.jpg",
+    "label": "ひよこ結婚"
+  },
+  {
+    "id": "chick-heat-care",
+    "src": "/panels/chick-heat-care.jpg",
+    "label": "ひよこ暑さ対策"
+  },
+  {
+    "id": "chick-heatstroke",
+    "src": "/panels/chick-heatstroke.jpg",
+    "label": "ひよこ熱中症"
+  },
+  {
+    "id": "chick-storm",
+    "src": "/panels/chick-storm.jpg",
+    "label": "ひよこ暴風"
+  },
+  {
+    "id": "chick-after-rain",
+    "src": "/panels/chick-after-rain.jpg",
+    "label": "ひよこ雨上がり"
+  },
+  {
     "id": "cookie",
     "src": "/panels/cookie.jpg",
     "label": "クッキー"

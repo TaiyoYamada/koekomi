@@ -1158,7 +1158,7 @@ rt {
   flex-direction: column;
   align-items: center;
 }
-.home-inner svg[aria-label] {
+.home-inner .mascot {
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.12));
   animation: mascot-bob 3s ease-in-out infinite;
 }
