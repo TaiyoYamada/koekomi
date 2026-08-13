@@ -12,12 +12,10 @@ const assignment: Assignment = {
 }
 
 describe('ServerBadge（接続ステータス）', () => {
-  it('接続済みなら「接続済み」を表示（色ドットつき）', () => {
+  it('接続済みなら何も表示しない（サーバー色はサイドバーのロゴが示す）', () => {
     const { container } = render(<ServerBadge assignment={assignment} mode="ai" />)
-    const text = container.textContent ?? ''
-    expect(text).toContain('接続')
-    expect(text).toContain('済')
-    expect(container.querySelector('.status-dot')).not.toBeNull()
+    expect(container.textContent).toBe('')
+    expect(container.querySelector('.status-pill')).toBeNull()
   })
 
   it('未接続なら「接続されていません」を表示', () => {

@@ -998,13 +998,6 @@ rt {
   margin-bottom: -6px;
   transform: translateY(4.5px);
 }
-/* 間の調整は「自動でめくる」がオンのときだけ表示する */
-.gap-val {
-  min-width: 52px;
-  display: inline-block;
-  text-align: center;
-}
-
 /* ===== あそびかた ===== */
 .howto-list {
   list-style: none;

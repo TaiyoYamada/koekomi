@@ -3,6 +3,7 @@ import { Ruby } from './Furigana'
 import { Icon } from './icons'
 import { Mascot } from './Mascot'
 import { useApp } from '../state'
+import { colorDef } from '../lib/colors'
 import type { SectionMeta } from '../ui/labels'
 
 /** 左サイドバー。どの画面へもいつでも移動できる（順番なし）。 */
@@ -16,7 +17,13 @@ export function Sidebar({
   onSelect: (key: string) => void
 }) {
   const navigate = useNavigate()
-  const { setStarted } = useApp()
+  const { setStarted, assignment, mode } = useApp()
+
+  // どのColabにつながっているかは、ロゴマークの地色で示す（接続ステータスの
+  // バッジは正常時に出さないため、ここが唯一の確認手段になる）。
+  // AI音声を使っていないとき・未接続のときはブランド色のまま。
+  const server = mode === 'ai' && assignment ? colorDef(assignment.color) : null
+
   return (
     <aside className="sidebar">
       {/* ロゴでスタート画面へ戻る（作品は保存されているので消えない）。 */}
@@ -28,7 +35,12 @@ export function Sidebar({
           navigate('/')
         }}
       >
-        <span className="brand-mark">
+        <span
+          className="brand-mark"
+          style={server ? { background: server.hex } : undefined}
+          // 色だけに頼らず、先生・TAが文字でも確認できるようにしておく。
+          title={server ? `${server.jp}サーバーに接続中` : undefined}
+        >
           <Mascot size={32} />
         </span>
         <span className="brand-name">コエコミ</span>

@@ -21,7 +21,6 @@ const snap = (comas: Coma[]): WorkSnapshot => ({
   started: true,
   active: 'theater',
   autoPlay: true,
-  gapSec: 2,
   title: 'ねこの一日',
 })
 
@@ -42,8 +41,18 @@ describe('serializeWork / deserializeWork', () => {
     expect(snapshot.started).toBe(true)
     expect(snapshot.active).toBe('theater')
     expect(snapshot.autoPlay).toBe(true)
-    expect(snapshot.gapSec).toBe(2)
     expect(snapshot.title).toBe('ねこの一日')
+  })
+
+  it('autoPlay が無い旧データは自動めくりオンで復元する', () => {
+    const saved = serializeWork(snap([coma('p', 50, [line('l1', 'あ')])]), new Map())
+    delete (saved as Partial<typeof saved>).autoPlay
+    expect(deserializeWork(saved as typeof saved).snapshot.autoPlay).toBe(true)
+  })
+
+  it('autoPlay を切ってあればオフのまま復元する', () => {
+    const saved = serializeWork({ ...snap([coma('p', 50, [line('l1', 'あ')])]), autoPlay: false }, new Map())
+    expect(deserializeWork(saved).snapshot.autoPlay).toBe(false)
   })
 
   it('タイトルが無い旧データは空文字で復元する', () => {

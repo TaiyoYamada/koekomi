@@ -47,11 +47,10 @@ export interface AppState {
   mode: VoiceMode
   setMode: (m: VoiceMode) => void
 
-  // 劇場の再生設定（セクションを移動して戻っても保持する）
+  // 劇場の再生設定（セクションを移動して戻っても保持する）。
+  // コマの間隔は COMA_GAP_SEC の固定値で、状態として持たない。
   autoPlay: boolean
   setAutoPlay: (v: boolean) => void
-  gapSec: number
-  setGapSec: (n: number) => void
 
   // 作品タイトル（劇場で書ける。保存対象）
   title: string
@@ -116,8 +115,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null)
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null)
   const [tryoutVoices, setTryoutVoices] = useState<Record<string, string>>({})
-  const [autoPlay, setAutoPlay] = useState(boot?.snapshot.autoPlay ?? false)
-  const [gapSec, setGapSec] = useState(boot?.snapshot.gapSec ?? 0.5)
+  // 自動めくりは既定でオン（そのまま最後まで観られる状態にしておく）。
+  const [autoPlay, setAutoPlay] = useState(boot?.snapshot.autoPlay ?? true)
   // 進行中の生成リクエスト数（本生成＋お試し）。0より大きい間は「生成中」。
   const [genCount, setGenCount] = useState(0)
 
@@ -154,10 +153,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // 変更のたびに保存（打鍵中に連続保存しないよう少し待つ）。
   useEffect(() => {
     const t = setTimeout(() => {
-      void persistWork({ comas, started, active, autoPlay, gapSec, title }, savedUrlsRef.current)
+      void persistWork({ comas, started, active, autoPlay, title }, savedUrlsRef.current)
     }, 300)
     return () => clearTimeout(t)
-  }, [comas, started, active, autoPlay, gapSec, title])
+  }, [comas, started, active, autoPlay, title])
 
   function mapComa(comaIndex: number, fn: (c: Coma) => Coma) {
     setComas((prev) => prev.map((c, i) => (i === comaIndex ? fn(c) : c)))
@@ -178,8 +177,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       },
       autoPlay,
       setAutoPlay,
-      gapSec,
-      setGapSec,
       title,
       setTitle,
       comas,
@@ -257,7 +254,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         void clearWork()
       },
     }),
-    [started, active, assignment, mode, autoPlay, gapSec, title, comas, recordingBlob, recordingUrl, tryoutVoices, genCount],
+    [started, active, assignment, mode, autoPlay, title, comas, recordingBlob, recordingUrl, tryoutVoices, genCount],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

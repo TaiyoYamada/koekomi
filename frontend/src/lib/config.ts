@@ -2,6 +2,13 @@
 
 const LS_GAS_OVERRIDE = 'vct.gasUrlOverride'
 
+/**
+ * 劇場で自動めくりするときの、コマとコマの間（秒）。
+ * 子どもが迷う設定項目を減らすため固定値にしている（画面からは変更できない）。
+ * 書き出す動画の間隔も同じ値を使う。
+ */
+export const COMA_GAP_SEC = 0.5
+
 /** GAS の Web アプリ URL を返す。localStorage の上書き > .env の順で優先。 */
 export function getGasUrl(): string {
   const override = localStorage.getItem(LS_GAS_OVERRIDE)

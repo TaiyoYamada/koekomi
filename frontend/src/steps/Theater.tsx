@@ -8,19 +8,23 @@ import { useApp } from '../state'
 import { speak, stopSpeaking } from '../lib/speech'
 import { fileUrl, uploadVideo } from '../lib/api'
 import { downloadBlob, exportTheaterVideo, isVideoExportSupported } from '../lib/export-video'
+import { COMA_GAP_SEC } from '../lib/config'
 import type { Line } from '../types'
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /**
  * 4コマ劇場プレイヤー。
- * - 既定は手動：1コマずつめくる（▶でそのコマを再生）。
- * - 「自動でめくる」をオンにすると、間（ま）の秒数をあけて最後まで進む。
+ * - 既定は自動でめくる：最後のコマまで続けて再生する。
+ * - オフにすると手動になり、1コマずつめくる（▶でそのコマを再生）。
+ * - コマとコマの間は COMA_GAP_SEC の固定値（画面からは変えられない）。
  */
 export function Theater() {
   const { panels } = usePanels()
-  const { comas, mode, autoPlay: auto, setAutoPlay: setAuto, gapSec, setGapSec, title, setTitle, active, assignment } =
+  const { comas, mode, autoPlay: auto, setAutoPlay: setAuto, title, setTitle, active, assignment } =
     useApp()
+  // コマの間隔は固定（画面から変更できない）。
+  const gapSec = COMA_GAP_SEC
   const [current, setCurrent] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [playingLineId, setPlayingLineId] = useState<string | null>(null)
@@ -229,7 +233,15 @@ export function Theater() {
     <div className="theater">
       <StepHead
         title="4コマ劇場(げきじょう)を見(み)る"
-        hint={<Ruby text="1コマずつめくって見(み)よう。自動(じどう)でめくることもできるよ。" />}
+        hint={
+          <Ruby
+            text={
+              auto
+                ? '再生(さいせい)すると 最後(さいご)まで 続(つづ)けて 見(み)られるよ。'
+                : '1コマずつめくって見(み)よう。'
+            }
+          />
+        }
         action={
           lastExport && !exporting && (assignment || canShareFiles) ? (
             <div className="head-actions">
@@ -348,26 +360,6 @@ export function Theater() {
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
             <Ruby text="自動(じどう)でめくる" />
           </label>
-          {auto && (
-            <div className="opt gap-ctrl">
-              <Ruby text="つぎのコマまで" />
-              <button
-                className="mini"
-                aria-label="間をみじかく"
-                onClick={() => setGapSec(Math.max(0.5, +(gapSec - 0.5).toFixed(1)))}
-              >
-                －
-              </button>
-              <span className="gap-val">{gapSec.toFixed(1)}秒</span>
-              <button
-                className="mini"
-                aria-label="間をながく"
-                onClick={() => setGapSec(Math.min(5, +(gapSec + 0.5).toFixed(1)))}
-              >
-                ＋
-              </button>
-            </div>
-          )}
         </div>
 
       </div>

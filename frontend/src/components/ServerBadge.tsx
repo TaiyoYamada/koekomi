@@ -1,11 +1,13 @@
-import { colorDef } from '../lib/colors'
 import { Ruby } from './Furigana'
 import type { Assignment, VoiceMode } from '../types'
 
 /**
  * 画面上部の接続ステータス。
  * 「あなたは○サーバーです」のような表現はやめ、シンプルな接続状態を表示する。
- * 接続済みのときだけ、どのColabかを色ドットで示す（色は維持）。
+ *
+ * 正常につながっているときは何も出さない（子どもに見せる情報を減らすため）。
+ * どのColabにつながっているかは、サイドバーのロゴマークの色で確認できる。
+ * 異常時（接続中・未接続・オフライン）だけは、気づけるように必ず表示する。
  */
 export function ServerBadge({
   assignment,
@@ -24,17 +26,8 @@ export function ServerBadge({
       </div>
     )
   }
-  if (assignment) {
-    const c = colorDef(assignment.color)
-    return (
-      <div className="status-pill ok">
-        <span className="status-dot" style={{ background: c.hex }} />
-        <span>
-          <Ruby text="接続済(せつぞくず)み" />
-        </span>
-      </div>
-    )
-  }
+  // 接続済みは何も表示しない（サーバーの色はサイドバーのロゴマークが示す）。
+  if (assignment) return null
   if (connecting) {
     return (
       <div className="status-pill">
