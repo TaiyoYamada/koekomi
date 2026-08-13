@@ -36,7 +36,7 @@ export function Sidebar({
         }}
       >
         <span
-          className="brand-mark"
+          className={'brand-mark' + (server ? ' server' : '')}
           style={server ? { background: server.hex } : undefined}
           // 色だけに頼らず、先生・TAが文字でも確認できるようにしておく。
           title={server ? `${server.jp}サーバーに接続中` : undefined}

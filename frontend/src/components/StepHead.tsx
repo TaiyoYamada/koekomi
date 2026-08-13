@@ -20,7 +20,12 @@ export function StepHead({
         </h2>
         {action}
       </div>
-      {hint && <p className="step-hint">{hint}</p>}
+      {hint && (
+        // 劇場のように中央寄せの画面でも、吹き出しは見出しと同じ左端から出す。
+        <div className="screen-hint-row">
+          <p className="step-hint screen-hint">{hint}</p>
+        </div>
+      )}
     </>
   )
 }

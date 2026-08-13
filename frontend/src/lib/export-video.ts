@@ -53,6 +53,8 @@ export interface ExportOptions {
   comas: Coma[]
   panels: Panel[]
   gapSec: number
+  /** 先読み済みの音声（元URL → blob URL）。あれば取り直さずにこちらを使う。 */
+  preloaded?: Map<string, string>
   onProgress?: (ratio: number) => void
   signal?: AbortSignal
 }
@@ -232,20 +234,47 @@ export function drawFrame(
 
 // ===== 読み込み =====
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+/** 中止を表すエラー。呼び出し側は name === 'AbortError' で「失敗」と見分ける。 */
+function abortError(): DOMException {
+  return new DOMException('中止しました', 'AbortError')
+}
+
+/** 中止ボタンが押されていたらそこで抜ける。 */
+export function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw abortError()
+}
+
+function loadImage(src: string, signal?: AbortSignal): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    const onAbort = () => {
+      img.src = '' // 読み込みを打ち切る
+      reject(abortError())
+    }
+    const done = () => signal?.removeEventListener('abort', onAbort)
+    signal?.addEventListener('abort', onAbort, { once: true })
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error(`画像を読み込めません: ${src}`))
+    img.onload = () => {
+      done()
+      resolve(img)
+    }
+    img.onerror = () => {
+      done()
+      reject(new Error(`画像を読み込めません: ${src}`))
+    }
     img.src = src
   })
 }
 
 /** 音声を取ってきてデコードする。失敗したら null（無音扱いで先に進む）。 */
-async function loadAudio(ac: AudioContext, url: string): Promise<AudioBuffer | null> {
+async function loadAudio(
+  ac: AudioContext,
+  url: string,
+  signal?: AbortSignal,
+): Promise<AudioBuffer | null> {
   try {
-    const res = await fetch(url)
+    // signal を渡さないと、中止ボタンを押しても通信が終わるまで止まらない。
+    const res = await fetch(url, { signal })
     if (!res.ok) return null
     const buf = await res.arrayBuffer()
     return await ac.decodeAudioData(buf)
@@ -258,7 +287,7 @@ async function loadAudio(ac: AudioContext, url: string): Promise<AudioBuffer | n
 
 /** 4コマ劇場を録画して動画の Blob を返す。 */
 export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportResult> {
-  const { comas, panels, gapSec, onProgress, signal } = opts
+  const { comas, panels, gapSec, preloaded, onProgress, signal } = opts
 
   const mime = pickMimeType()
   if (!mime) throw new Error('この端末では動画を保存できません。')
@@ -271,12 +300,17 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
   try {
     // 1. 素材をぜんぶ先に読み込む（録画中に止まらないように）。
     // 声を読み込めないまま進むと「無音の動画」が黙って出来てしまうので、ここで止める。
+    // 中止ボタンにすぐ反応できるよう、1つ読むごとに中止を見る
+    // （まとめて読み終わってから見ると、通信が遅いときに止まらなくなる）。
     const buffers = new Map<string, AudioBuffer>()
     let failedVoices = 0
     for (const coma of comas) {
       for (const line of coma.lines) {
         if (!line.voiceUrl) continue
-        const buf = await loadAudio(ac, line.voiceUrl)
+        throwIfAborted(signal)
+        // 劇場で先読み済みならそれを使う（トンネル越しに取り直さない）。
+        const buf = await loadAudio(ac, preloaded?.get(line.voiceUrl) ?? line.voiceUrl, signal)
+        throwIfAborted(signal)
         if (buf) buffers.set(line.id, buf)
         else failedVoices++
       }
@@ -284,20 +318,22 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
     if (failedVoices > 0) {
       throw new Error(`セリフの声を${failedVoices}つ読み込めませんでした。もう一度ためしてね。`)
     }
-    if (signal?.aborted) throw new DOMException('中止しました', 'AbortError')
 
     const images = new Map<string, HTMLImageElement>()
     for (const coma of comas) {
       if (!coma.panelId || images.has(coma.panelId)) continue
       const panel = panels.find((p) => p.id === coma.panelId)
       if (!panel) continue
+      throwIfAborted(signal)
       try {
-        images.set(coma.panelId, await loadImage(panel.src))
+        images.set(coma.panelId, await loadImage(panel.src, signal))
       } catch {
         // 読めない写真は暗転で通す。
       }
+      throwIfAborted(signal)
     }
-    if (signal?.aborted) throw new DOMException('中止しました', 'AbortError')
+
+    throwIfAborted(signal) // 録画を始める前の最後の関門。
 
     // 2. 時間軸を組む。
     const durations = new Map<string, number>()
@@ -326,8 +362,18 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data)
     }
+    // 録画データは stop() のときにまとめて届く。ここを待ち切らないと
+    // 中身の無い（または途中で切れた）動画ができてしまうので、必ず onstop を待つ。
+    let finished = false
+    let recError: Error | null = null
     const stopped = new Promise<void>((resolve) => {
       rec.onstop = () => resolve()
+      rec.onerror = () => {
+        // 録画そのものが失敗したとき。止めれば onstop で待ちが解ける。
+        // （onerror は rec.start() 以降にしか発火しないので finish は初期化済み）
+        recError = new Error('録画に失敗しました。')
+        finish()
+      }
     })
 
     // 4. 音声を先に全部スケジュールしてから録画を始める。
@@ -344,7 +390,6 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
       sources.push(src)
     }
 
-    let finished = false
     const finish = () => {
       if (finished) return
       finished = true
@@ -365,6 +410,7 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
     // 5. 実時間で描き続ける。
     // requestAnimationFrame ではなくタイマーで回す。rAF はタブが裏に回ると止まり、
     // 音声だけ進んで映像が固まった動画ができてしまうため。
+    let lastPct = -1
     await new Promise<void>((resolve) => {
       const timer = setInterval(() => {
         const elapsed = performance.now() - t0
@@ -379,7 +425,12 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
           const coma = comas[seg.comaIndex]
           drawFrame(ctx, images.get(coma.panelId ?? ''), 50, seg.subtitle)
         }
-        onProgress?.(Math.min(1, elapsed / totalMs))
+        // 進捗は数字が変わったときだけ伝える（毎フレーム再描画させると中止ボタンが重くなる）。
+        const pct = Math.min(100, Math.floor((elapsed / totalMs) * 100))
+        if (pct !== lastPct) {
+          lastPct = pct
+          onProgress?.(pct / 100)
+        }
       }, FRAME_INTERVAL_MS)
     })
 
@@ -387,7 +438,8 @@ export async function exportTheaterVideo(opts: ExportOptions): Promise<ExportRes
     signal?.removeEventListener('abort', finish)
     onProgress?.(1)
 
-    if (signal?.aborted) throw new DOMException('中止しました', 'AbortError')
+    throwIfAborted(signal)
+    if (recError) throw recError
 
     const blob = new Blob(chunks, { type: mime })
     if (blob.size === 0) throw new Error('動画を録画できませんでした。')

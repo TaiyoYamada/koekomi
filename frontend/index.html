@@ -2,8 +2,10 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
+    <!-- ?v= はキャッシュ避け。ブラウザは favicon を強くキャッシュするので、
+         アイコンを差し替えたらこの番号を上げること。 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png?v=2" />
     <!-- iOS はホーム画面アイコンに SVG を読めないため PNG(180px) を渡す。 -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />

@@ -1,13 +1,25 @@
 :root {
-  --bg: #fff7ed;
+  --bg: #e8edf2;
   --card: #ffffff;
   --ink: #2b2b2b;
   --muted: #6b7280;
   --primary: #ff7a1a;
   --primary-ink: #ffffff;
   --ok: #16a34a;
-  --shadow: 0 6px 0 rgba(0, 0, 0, 0.12);
+  /* 押せるものの厚み。枠線ではなく影で「押せる」を伝える。 */
+  --shadow: 0 4px 0 rgba(31, 41, 55, 0.18);
   --radius: 22px;
+
+  /* ===== マンガの文法のためのトークン =====
+     このアプリは4コマ漫画を作るものなので、UI もマンガの部品で組む。
+     ルール:「触るものは丸い、構造は直角」。ボタンは丸く、コマ枠は直角。 */
+  --paper: #e8edf2; /* 机の色。コマ（白）を浮かせるための地 */
+  --ink-line: #3b4450; /* 罫と主役の文字。コマの枠にだけ使う */
+  --ink-soft: #6b7686; /* 補助テキスト */
+  --line-soft: #c4ccd7; /* 弱い罫。入力欄・小さなボタン・写真枠など、コマ以外の区切り */
+  --tone: #cfd8e3; /* トーン（集中線） */
+  --voice: #22c1c3; /* 声の波。マスコットと揃える */
+  --rule: 3px; /* コマ罫の太さ。線はコマだけの特権にする */
 }
 
 * {
@@ -89,10 +101,13 @@ body {
   gap: 12px;
   flex-wrap: wrap;
 }
+/* ズレ影（題字と同じ処理）も試したが、ふりがなが乗るぶん輪郭が二重に見えて
+   読みにくかったので、大きさと墨の濃さだけで強さを出す。 */
 .step-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 900;
   margin: 0;
+  color: var(--ink-line);
 }
 /* 見出し行に複数のアクションボタンを並べるとき用。 */
 .head-actions {
@@ -101,10 +116,48 @@ body {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+/* 補助テキスト全般。カードの中などでも使うので、ここは控えめなままにする。 */
 .step-hint {
-  color: var(--muted);
+  color: var(--ink-soft);
   margin: 4px 0 16px;
   font-size: 17px;
+}
+.screen-hint-row {
+  text-align: left;
+}
+/* 画面見出しの直下に置くヒントだけは「アプリが語りかけている言葉」なので吹き出しにする。
+   しっぽは上の見出しへ向ける。墨の三角と白の三角を重ね、輪郭だけを残す。 */
+.screen-hint {
+  position: relative;
+  display: inline-block;
+  color: var(--ink-line);
+  background: #fff;
+  border: 2px solid var(--ink-line);
+  border-radius: 20px;
+  margin: 16px 0 22px;
+  padding: 10px 18px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.screen-hint::before,
+.screen-hint::after {
+  content: '';
+  position: absolute;
+  left: 26px;
+}
+.screen-hint::before {
+  top: -18px;
+  width: 26px;
+  height: 20px;
+  background: var(--ink-line);
+  clip-path: polygon(0 100%, 100% 100%, 28% 0);
+}
+.screen-hint::after {
+  top: -12px;
+  width: 18px;
+  height: 17px;
+  background: #fff;
+  clip-path: polygon(0 100%, 100% 100%, 30% 0);
 }
 
 /* ===== いつでも行き来できるステップタブ ===== */
@@ -165,18 +218,28 @@ button {
 }
 .btn:active {
   transform: translateY(3px);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 0 rgba(31, 41, 55, 0.18);
+}
+/* キーボードで操作したとき、いまどこにいるのかが必ず見えるようにする。 */
+.btn:focus-visible {
+  outline: 4px solid var(--ink-line);
+  outline-offset: 4px;
 }
 .btn.secondary {
   background: #fff;
-  color: var(--ink);
-  border: 3px solid #e5e7eb;
+  color: var(--ink-line);
+  border: 2px solid var(--line-soft);
 }
 /* 見出し行などに置く控えめサイズ。 */
 .btn.small {
   font-size: 17px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   border-radius: 14px;
+  box-shadow: none;
+}
+.btn.small:active {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 .btn.big {
   width: 100%;
@@ -184,13 +247,13 @@ button {
   padding: 22px;
 }
 .btn.rec {
-  background: #ef4444;
+  background: #d9483c;
 }
 .btn.stop {
-  background: #111827;
+  background: var(--ink-line);
 }
 .btn.danger {
-  background: #ef4444;
+  background: #d9483c;
   color: #fff;
 }
 /* リセットの確認状態：同じボタンが赤に変わり、ちょっと揺れて注意を引く。
@@ -233,8 +296,9 @@ button {
 }
 /* 無効時のグレーは色付きボタン（rec/stop等）より必ず優先する（定義順で勝たせる） */
 .btn:disabled {
-  background: #d1d5db;
+  background: #c8d0da;
   color: #fff;
+  border-color: var(--line-soft);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -245,9 +309,9 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 247, 237, 0.96);
+  background: rgba(232, 237, 242, 0.96);
   backdrop-filter: blur(6px);
-  border-top: 2px solid #f1ddc8;
+  border-top: 2px solid var(--line-soft);
   display: flex;
   gap: 12px;
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
@@ -273,8 +337,8 @@ button {
 }
 .panel {
   position: relative;
-  border: 4px solid transparent;
-  border-radius: 16px;
+  border: 2px solid var(--line-soft);
+  border-radius: 0;
   overflow: hidden;
   background: #fff;
   padding: 0;
@@ -287,18 +351,19 @@ button {
   object-fit: cover;
   display: block;
 }
+/* 選んだものは内側にオレンジの太枠。外の墨罫を残したまま、位置をずらさない。 */
 .panel.selected {
-  border-color: var(--primary);
+  box-shadow: inset 0 0 0 6px var(--primary);
 }
 .panel .pick-order {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  background: var(--primary);
-  color: #fff;
+  top: 0;
+  left: 0;
+  background: var(--ink-line);
+  color: var(--paper);
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 0;
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -311,51 +376,105 @@ button {
   align-items: center;
   gap: 12px;
   background: var(--card);
-  border-radius: 18px;
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
   padding: 12px;
   margin-bottom: 14px;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.06);
 }
 .line-row img {
   width: 72px;
   height: 72px;
-  border-radius: 12px;
+  border-radius: 0;
   object-fit: cover;
   flex: 0 0 auto;
 }
 .line-row .coma-no {
   font-weight: 900;
-  color: var(--primary);
+  color: var(--ink-line);
 }
 textarea,
 input[type='text'] {
   width: 100%;
   font-size: 22px;
   font-family: inherit;
-  border: 3px solid #e5e7eb;
+  background: #fff;
+  color: var(--ink-line);
+  border: 2px solid var(--line-soft);
   border-radius: 14px;
   padding: 12px;
   resize: vertical;
 }
 textarea:focus,
 input[type='text']:focus {
-  outline: none;
+  outline: 3px solid var(--primary);
+  outline-offset: 1px;
   border-color: var(--primary);
 }
 
+/* ファイル選択。ブラウザ既定の見た目のままだと、ここだけ別のアプリに見える。 */
+input[type='file'] {
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+input[type='file']::file-selector-button {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink-line);
+  background: #fff;
+  border: 2px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
 /* ===== カード ===== */
+/* カードは紙に描かれたコマとして扱う。紙に直接描かれているので影は落とさない
+   （浮くのはタイトル画面のコマだけ）。余白はコマ間のガター。 */
 .card {
   background: var(--card);
-  border-radius: var(--radius);
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
   padding: 20px;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.06);
-  margin-bottom: 16px;
+  margin-bottom: 22px;
+}
+/* 中身そのものが主役で、コマで囲む意味がないとき（大きなボタン1つなど）。 */
+.card.bare {
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 /* 録音で読んでもらう固定スクリプト（大きく・読みやすく） */
+/* 声に出して読む文なので、コマではなく吹き出しにする。
+   しっぽは下（読む人）へ向ける。 */
 .script-card {
-  background: #fff7ed;
-  border: 3px dashed var(--primary);
+  position: relative;
+  background: #fff;
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 30px;
+}
+.script-card::before,
+.script-card::after {
+  content: '';
+  position: absolute;
+  left: 44px;
+}
+.script-card::before {
+  bottom: -24px;
+  width: 34px;
+  height: 26px;
+  background: var(--ink-line);
+  clip-path: polygon(0 0, 100% 0, 26% 100%);
+}
+.script-card::after {
+  bottom: -16px;
+  width: 24px;
+  height: 22px;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 0, 28% 100%);
 }
 .script-text {
   margin: 0;
@@ -404,10 +523,10 @@ input[type='text']:focus {
   width: min(100%, max(560px, (100svh - var(--chrome-h)) * 1.6));
   max-width: 1100px;
   margin: 0 auto;
-  border-radius: 18px;
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
   overflow: hidden;
   background: #0b0f17;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   aspect-ratio: 16 / 10;
   /* 字幕をビューポートではなくスクリーン幅に追従させる（下の cqw）。 */
   container-type: inline-size;
@@ -509,22 +628,21 @@ input[type='text']:focus {
 
 /* ===== バナー・注意 ===== */
 .banner {
-  border-radius: 16px;
+  border-radius: 0;
+  border: 2px solid var(--line-soft);
   padding: 14px 16px;
   margin: 12px 0;
   font-weight: 700;
+  color: var(--ink-line);
 }
 .banner.warn {
   background: #fef3c7;
-  border: 2px solid #fcd34d;
 }
 .banner.err {
   background: #fee2e2;
-  border: 2px solid #fca5a5;
 }
 .banner.ok {
   background: #dcfce7;
-  border: 2px solid #86efac;
 }
 /* バナー内のボタン（再接続やフォールバック）は控えめサイズに */
 .banner .row {
@@ -533,7 +651,7 @@ input[type='text']:focus {
 .banner .btn {
   font-size: 15px;
   padding: 10px 14px;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 0 rgba(31, 41, 55, 0.18);
 }
 
 /* ===== 管理画面（先生用）への隠し導線 ===== */
@@ -613,6 +731,7 @@ rt {
 /* ルビのぶん行間に余裕を持たせて、重なりを防ぐ */
 .step-title,
 .step-hint,
+.screen-hint,
 .theater-bubble,
 .coma-no,
 .btn,
@@ -631,8 +750,8 @@ rt {
 .sidebar {
   flex: 0 0 124px;
   width: 124px;
-  background: #fff;
-  border-right: 2px solid #f1ddc8;
+  background: var(--paper);
+  border-right: 2px solid var(--line-soft);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -655,7 +774,7 @@ rt {
   border-radius: 12px;
 }
 .sidebar-brand:hover {
-  background: #fff3e9;
+  background: #dbe3ec;
 }
 .sidebar-brand:active .brand-mark {
   transform: scale(0.94);
@@ -669,11 +788,19 @@ rt {
   display: grid;
   place-items: center;
 }
+/* サーバー色を着せたときは白いリングを回す。
+   ブランド色（オレンジ）とサーバーのオレンジは色だけでは見分けられないので、
+   「リングがある＝サーバーの色」と一目で分かるようにしておく。 */
+.brand-mark.server {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 5px rgba(0, 0, 0, 0.22);
+}
 .brand-name {
   font-weight: 900;
   font-size: 18px;
   letter-spacing: 0.04em;
-  color: var(--primary);
+  color: var(--ink-line);
 }
 @media (max-width: 600px) {
   .brand-name {
@@ -691,27 +818,34 @@ rt {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  border-top: 2px solid #f3f4f6;
+  border-top: 2px solid var(--line-soft);
   padding-top: 8px;
 }
+/* サイドバーの項目は触るものなので丸い。今いる場所だけを塗って示す。 */
+/* 項目は白い小さなカード。枠ではなく影で「押せる」を伝える。
+   塗りつぶすのは今いる場所だけにして、オレンジの面積を増やさない。 */
 .side-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   width: 100%;
-  border: 3px solid transparent;
-  background: #f9fafb;
+  border: none;
+  background: #fff;
   border-radius: 16px;
   padding: 10px 4px;
   font-weight: 800;
-  color: #6b7280;
+  color: #5b6474;
   cursor: pointer;
+  box-shadow: 0 2px 0 rgba(31, 41, 55, 0.12);
+}
+.side-item:hover {
+  background: #f4f7fa;
 }
 .side-item.active {
-  border-color: var(--primary);
-  background: #fff3e9;
-  color: var(--ink);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 0 rgba(31, 41, 55, 0.2);
 }
 .side-item .ic {
   font-size: 26px;
@@ -720,8 +854,13 @@ rt {
 .side-item .lb {
   font-size: 13px;
 }
+/* 下段（遊び方・プライバシー・設定）は補助なので、押せることは示しつつ重みを下げる。 */
+/* 下段（遊び方・プライバシー・設定）は補助なので、地になじませて重みを下げる。 */
 .side-item.small {
   padding: 8px 4px;
+  background: #dfe5ed;
+  color: var(--ink-soft);
+  box-shadow: none;
 }
 .side-item.small .ic {
   font-size: 20px;
@@ -833,10 +972,11 @@ rt {
   margin-left: auto;
   margin-right: auto;
   background: var(--card);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.06);
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
+  padding: 14px;
+  /* コマとコマの間（ガター）。 */
+  margin-bottom: 24px;
 }
 .coma-card-head {
   display: flex;
@@ -844,17 +984,20 @@ rt {
   justify-content: space-between;
   margin-bottom: 10px;
 }
+/* コマ番号は原稿の指示書きなので、墨のタグに白抜きで置く。 */
 .coma-label {
   font-weight: 900;
-  color: var(--primary);
-  font-size: 20px;
+  background: var(--ink-line);
+  color: var(--paper);
+  font-size: 18px;
+  padding: 3px 12px;
 }
 .reorder {
   display: flex;
   gap: 4px;
 }
 .mini {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--line-soft);
   background: #fff;
   border-radius: 10px;
   min-width: 40px;
@@ -870,14 +1013,15 @@ rt {
   cursor: not-allowed;
 }
 .mini.del {
-  border-color: #fca5a5;
+  color: #b91c1c;
 }
 .coma-photo {
   /* カード（.coma-card）が劇場スクリーン＋パディング幅なので、100% で劇場と同じ幅になる */
   width: 100%;
   aspect-ratio: 16 / 10;
-  border: 3px dashed #e5e7eb;
-  border-radius: 16px;
+  /* 空のコマは破線＝これから描くところ。写真が入ると実線になる。 */
+  border: 2px dashed var(--line-soft);
+  border-radius: 0;
   overflow: hidden;
   background: #fff;
   padding: 0;
@@ -891,7 +1035,7 @@ rt {
   object-fit: cover;
 }
 .coma-photo-empty {
-  color: #9ca3af;
+  color: var(--ink-soft);
   font-weight: 800;
 }
 /* 写真があるとき（中央固定トリミング。写真全体が「選び直す」ボタン） */
@@ -933,8 +1077,9 @@ rt {
   z-index: 100;
 }
 .picker-card {
-  background: #fff;
-  border-radius: 20px;
+  background: var(--paper);
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
   padding: 16px;
   width: 100%;
   max-width: 680px;
@@ -955,8 +1100,8 @@ rt {
 .qr-img {
   width: 100%;
   max-width: 320px;
-  border-radius: 12px;
-  border: 3px solid #e5e7eb;
+  border-radius: 0;
+  border: 2px solid var(--line-soft);
 }
 
 /* ===== 劇場プレイヤー ===== */
@@ -1012,9 +1157,9 @@ rt {
   align-items: center;
   gap: 12px;
   background: var(--card);
-  border-radius: var(--radius);
+  border: var(--rule) solid var(--ink-line);
+  border-radius: 0;
   padding: 14px 16px;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.06);
 }
 .howto-no {
   flex: 0 0 auto;
@@ -1056,23 +1201,16 @@ rt {
   padding: 8px 14px;
   border-radius: 999px;
   margin-bottom: 16px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-}
-.status-pill.ok {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
+  background: #fff;
+  color: var(--ink-line);
+  border: 2px solid var(--line-soft);
 }
 .status-pill.warn {
   background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
 }
 .status-pill.muted {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #fff;
+  color: var(--ink-soft);
 }
 .status-dot {
   width: 11px;
@@ -1095,63 +1233,167 @@ rt {
   gap: 8px;
 }
 
-/* ===== ホーム（タイトル画面・キッズアプリ風）===== */
+/* ===== ホーム（タイトル画面）=====
+   この画面を「これから描く4コマの、いちばん最初のコマ」として扱う。
+   太い墨罫の直角のコマの中に、マスコット・題字・入口を収める。 */
 .home {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 24px 20px 40px;
+  padding: 24px 20px calc(28px + env(safe-area-inset-bottom));
+  background: var(--paper);
   overflow: hidden;
-  background: radial-gradient(120% 120% at 50% 0%, #fff6ec 0%, #ffe9d2 55%, #ffe0c7 100%);
 }
-/* 背景のカラフルなまる */
-.home-blobs .blob {
+/* トンボ（印刷原稿の四隅の目印）。この画面が「原稿」であることを、
+   面積を取らずに示す。上下2つの擬似要素で四隅を担当し、
+   辺の中央はマスクで抜いて、隅のL字だけを残す。 */
+.home::before,
+.home::after {
+  content: '';
   position: absolute;
-  border-radius: 50%;
-  filter: blur(6px);
-  opacity: 0.5;
+  left: 20px;
+  right: 20px;
+  height: 26px;
+  pointer-events: none;
+  border-left: 3px solid var(--ink-line);
+  border-right: 3px solid var(--ink-line);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    #000 0 30px,
+    transparent 30px calc(100% - 30px),
+    #000 calc(100% - 30px)
+  );
+  mask-image: linear-gradient(
+    90deg,
+    #000 0 30px,
+    transparent 30px calc(100% - 30px),
+    #000 calc(100% - 30px)
+  );
 }
-.home-blobs .b1 {
-  width: 220px;
-  height: 220px;
-  background: #ffd6a5;
-  top: -60px;
-  left: -50px;
+.home::before {
+  top: 20px;
+  border-top: 3px solid var(--ink-line);
 }
-.home-blobs .b2 {
-  width: 180px;
-  height: 180px;
-  background: #a0c4ff;
-  bottom: -40px;
-  right: -30px;
+.home::after {
+  bottom: 20px;
+  border-bottom: 3px solid var(--ink-line);
 }
-.home-blobs .b3 {
-  width: 120px;
-  height: 120px;
-  background: #bde0a8;
-  top: 40px;
-  right: 28px;
+
+/* 机に散らばった原稿。中央のコマの後ろに置いて、画面の余白を「机」にする。
+   意味を持たない飾りにならないよう、形はすべてコマ（白い紙＋薄い罫）で統一する。 */
+.home-scatter {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.home-blobs .b4 {
-  width: 100px;
-  height: 100px;
-  background: #ffadad;
-  bottom: 80px;
-  left: 24px;
+.home-scatter .sheet {
+  position: absolute;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--line-soft);
+  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.07);
 }
+.home-scatter .sheet img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.home-scatter .s1 {
+  width: 190px;
+  height: 136px;
+  top: 12%;
+  left: 6%;
+  transform: rotate(-7deg);
+}
+.home-scatter .s2 {
+  width: 150px;
+  height: 190px;
+  bottom: 10%;
+  left: 13%;
+  transform: rotate(5deg);
+}
+.home-scatter .s3 {
+  width: 210px;
+  height: 150px;
+  top: 8%;
+  right: 8%;
+  transform: rotate(6deg);
+}
+.home-scatter .s4 {
+  width: 160px;
+  height: 200px;
+  bottom: 8%;
+  right: 12%;
+  transform: rotate(-5deg);
+}
+.home-scatter .s5 {
+  width: 130px;
+  height: 96px;
+  bottom: 30%;
+  right: 2%;
+  transform: rotate(11deg);
+}
+
+/* コマ。マンガのコマは角丸にしない（＝構造は直角）。
+   マスコットが上にはみ出す（コマ抜け）ので、ここでは切り取らない。 */
+.home-frame {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  padding: 40px 28px 44px;
+  background: var(--card);
+  border: var(--rule) solid var(--ink-line);
+  /* コマの厚み。ぼかさず硬いオフセットにして、印刷物の版ずれのように見せる。 */
+  box-shadow: 10px 10px 0 var(--ink-line);
+  animation: panel-slam 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* 集中線。マンガで「注目」を表す記号で、この画面の主役であるマスコットから放射させる。
+   中心はマスクで抜き、外へ向かって線が現れるようにする。 */
+.home-focus-lines {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 40%,
+    var(--tone) 0deg 1.1deg,
+    transparent 1.1deg 7.5deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 40%, transparent 24%, #000 64%);
+  mask-image: radial-gradient(circle at 50% 40%, transparent 24%, #000 64%);
+  opacity: 0.55;
+}
+
+@keyframes panel-slam {
+  0% {
+    transform: scale(1.04);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.995);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .home-inner {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 460px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+/* コマ抜け。マンガでキャラが枠から飛び出す表現で、主役をいちばん手前に出す。 */
 .home-inner .mascot {
+  margin-top: -80px;
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.12));
   animation: mascot-bob 3s ease-in-out infinite;
 }
@@ -1164,28 +1406,68 @@ rt {
     transform: translateY(-7px);
   }
 }
+
+/* 題字。日本語のディスプレイ書体は読み込みが重いので入れず、
+   墨のベタ＋オレンジのズレ影（印刷の版ずれ）で個性を出す。
+   白抜きも試したが、カタカナは画数が少なく縁取りで白が潰れるため採らない。 */
 .home-title {
-  font-size: 46px;
+  font-size: clamp(48px, 15vw, 64px);
   font-weight: 900;
-  margin: 6px 0 0;
-  letter-spacing: 0.06em;
-  color: #ff6a00;
-  text-shadow: 0 3px 0 #ffd6b0;
+  letter-spacing: 0.1em;
+  /* 字送りの分だけ右に寄るので、視覚的な中央に戻す。 */
+  text-indent: 0.1em;
+  margin: 12px 0 0;
+  color: var(--ink-line);
+  text-shadow: 5px 6px 0 var(--primary);
 }
+
 .home-tagline {
-  color: #6b5642;
+  color: var(--ink-soft);
   font-size: 19px;
   font-weight: 700;
-  margin: 8px 0 30px;
+  margin: 18px 0 30px;
   line-height: 1.9;
 }
+
+/* 入口。触るものは丸い。墨の縁と硬い影で、押せることを形で伝える。 */
 .home-start {
   width: 100%;
   max-width: 360px;
   font-size: 30px;
   border-radius: 999px;
   padding: 20px;
+  box-shadow: 0 6px 0 rgba(31, 41, 55, 0.22);
 }
+.home-start:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(31, 41, 55, 0.22);
+}
+
+/* 紙を置けるのは、中央のコマの外側に十分な余白があるときだけ。
+   幅が足りないと紙がコマに重なって窮屈になるので、まとめて引っ込める。 */
+@media (max-width: 1100px) {
+  .home-scatter {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .home-frame {
+    padding: 30px 18px 34px;
+    box-shadow: 7px 7px 0 var(--ink-line);
+  }
+  .home-title {
+    text-shadow: 4px 5px 0 var(--primary);
+  }
+}
+
+/* 動きを減らす設定を尊重する。 */
+@media (prefers-reduced-motion: reduce) {
+  .home-frame,
+  .home-inner .mascot {
+    animation: none;
+  }
+}
+
 /* ===== 録音中インジケータ ===== */
 .rec-indicator {
   display: inline-flex;

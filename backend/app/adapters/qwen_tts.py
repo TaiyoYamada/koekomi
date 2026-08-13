@@ -27,6 +27,35 @@ log = logging.getLogger("vct.qwen")
 
 _SILENCE_SR = 24000
 
+# 生成音声の前後の無音を落とすしきい値。
+# ピークに対する相対値（-34dB 相当）と絶対値の大きいほうを使い、
+# 小さい声でも大きい声でも同じように効かせる。
+_TRIM_REL = 0.02
+_TRIM_ABS = 0.005
+# 語頭・語尾が欠けないように、無音を少しだけ残す。
+_TRIM_KEEP_SEC = 0.05
+
+
+def _trim_silence(wav, sr: int):
+    """波形の前後の無音を落とす。全部が無音なら元のまま返す。"""
+    import numpy as np
+
+    arr = np.asarray(wav)
+    # ステレオで返ってきた場合も先頭位置の判定はモノラルで行う。
+    mono = arr if arr.ndim == 1 else arr.mean(axis=1)
+    peak = float(np.max(np.abs(mono))) if mono.size else 0.0
+    threshold = max(_TRIM_ABS, peak * _TRIM_REL)
+    loud = np.flatnonzero(np.abs(mono) >= threshold)
+    if loud.size == 0:
+        return arr
+
+    keep = int(sr * _TRIM_KEEP_SEC)
+    start = max(0, int(loud[0]) - keep)
+    end = min(mono.shape[0], int(loud[-1]) + 1 + keep)
+    if start > 0:
+        log.info("生成音声の先頭 %.2f 秒の無音をカットしました", start / sr)
+    return arr[start:end]
+
 
 class QwenTTS:
     name = "qwen"
@@ -92,7 +121,14 @@ class QwenTTS:
                 ref_audio=str(reference_audio),
                 ref_text=reference_text,
             )
-            sf.write(str(wav_path), wavs[0], sr)
+            # モデルが頭に付けがちな無音を落としてから保存する
+            # （再生でも動画書き出しでも、そのまま「最初の空白」になるため）。
+            try:
+                out = _trim_silence(wavs[0], sr)
+            except Exception as e:  # トリムは飾り。失敗しても音声は返す。
+                log.warning("無音カットに失敗しました。そのまま保存します: %s", e)
+                out = wavs[0]
+            sf.write(str(wav_path), out, sr)
             return wav_path
 
         return await asyncio.to_thread(_run)

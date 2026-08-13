@@ -23,24 +23,39 @@ if (!existsSync(master)) {
 /** 背景色（マスターの地色と揃えること）。透過部分とパディングを埋める。 */
 const BG = '#ff7a1a'
 
+/** favicon の角丸の比率（iOS のアイコンに近い 22%）。 */
+const CORNER_RATIO = 0.22
+
 // 書き出すサイズ一覧。
 // apple-touch-icon は iOS がホーム画面で使うもので、SVG は読めないため PNG が必須。
 // maskable は Android が円などに切り抜くため、絵柄を縮めて安全域（中央80%）に収める。
+//
+// rounded を付けるのは favicon だけ。ブラウザのタブは画像をそのまま出すので、
+// 角を丸めたいなら画像側で丸めるしかない。逆に apple-touch-icon と maskable は
+// OS が自分で丸めるので、ここで丸めると角が二重に落ちて欠けてしまう。
 const targets = [
   { file: 'apple-touch-icon.png', size: 180 },
   { file: 'icon-192.png', size: 192 },
   { file: 'icon-512.png', size: 512 },
   { file: 'icon-512-maskable.png', size: 512, maskable: true },
-  { file: 'favicon-32.png', size: 32 },
-  { file: 'favicon-64.png', size: 64 },
+  { file: 'favicon-32.png', size: 32, rounded: true },
+  { file: 'favicon-64.png', size: 64, rounded: true },
 ]
+
+/** 角丸の外側を透明にするマスク（白い部分だけが残る）。 */
+function cornerMask(size) {
+  const r = Math.round(size * CORNER_RATIO)
+  return Buffer.from(
+    `<svg width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${r}" ry="${r}" fill="#fff"/></svg>`,
+  )
+}
 
 const { width, height } = await sharp(master).metadata()
 if (width !== height) {
   console.warn(`警告: マスターが正方形ではありません (${width}x${height})。中央でトリミングします。`)
 }
 
-for (const { file, size, maskable } of targets) {
+for (const { file, size, maskable, rounded } of targets) {
   // 透明を許さない（iOS はアルファを黒く落とすため、必ず背景を敷く）。
   const base = sharp(master).flatten({ background: BG })
 
@@ -57,8 +72,14 @@ for (const { file, size, maskable } of targets) {
         })
     : base.resize(size, size, { fit: 'cover', position: 'center' })
 
-  await out.png({ compressionLevel: 9 }).toFile(resolve(publicDir, file))
-  console.log(`書き出しました: ${file} (${size}x${size})${maskable ? ' [maskable]' : ''}`)
+  // 角を落とすぶんだけ、その外側は透明に戻す。
+  const shaped = rounded
+    ? out.ensureAlpha().composite([{ input: cornerMask(size), blend: 'dest-in' }])
+    : out
+
+  await shaped.png({ compressionLevel: 9 }).toFile(resolve(publicDir, file))
+  const notes = [maskable && 'maskable', rounded && '角丸'].filter(Boolean).join(' / ')
+  console.log(`書き出しました: ${file} (${size}x${size})${notes ? ` [${notes}]` : ''}`)
 }
 
 // ------------------------------------------------------------------

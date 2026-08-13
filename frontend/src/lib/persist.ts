@@ -28,8 +28,16 @@ interface SavedComa {
   focusY: number
   lines: SavedLine[]
 }
+/**
+ * 保存形式のバージョン。
+ * v1: 自動めくりの既定がオフだった頃。autoPlay の false は「本人が切った」のか
+ *     「当時の既定のまま」なのか区別できないので、読むときは既定（オン）に寄せる。
+ * v2: 自動めくりの既定がオンになった。以降の autoPlay はそのまま信じてよい。
+ */
+export const WORK_VERSION = 2
+
 export interface SavedWork {
-  v: 1
+  v: 1 | 2
   savedAt: number
   started: boolean
   active: string
@@ -55,7 +63,7 @@ export interface WorkSnapshot {
  */
 export function serializeWork(snap: WorkSnapshot, markers: Map<string, string | null>): SavedWork {
   return {
-    v: 1,
+    v: WORK_VERSION,
     savedAt: Date.now(),
     started: snap.started,
     active: snap.active,
@@ -93,8 +101,9 @@ export function deserializeWork(saved: SavedWork): {
       comas,
       started: !!saved.started,
       active: typeof saved.active === 'string' ? saved.active : 'editor',
-      // 旧データに autoPlay が無ければ既定のオン扱いにする。
-      autoPlay: saved.autoPlay !== false,
+      // v1 の autoPlay:false は当時の既定がそのまま書き戻されただけのことが多く、
+      // 本人の意思と区別できない。新しい既定（オン）に寄せる。
+      autoPlay: saved.v >= 2 ? saved.autoPlay !== false : true,
       title: typeof saved.title === 'string' ? saved.title : '',
     },
     idbLineIds,
@@ -124,7 +133,9 @@ export function loadWork(): SavedWork | null {
     const raw = localStorage.getItem(LS_WORK)
     if (!raw) return null
     const parsed = JSON.parse(raw) as SavedWork
-    if (parsed?.v !== 1 || !Array.isArray(parsed.comas)) return null
+    // 授業の途中でリロードされても作品を失わないよう、古い版もそのまま読む。
+    if (parsed?.v !== 1 && parsed?.v !== 2) return null
+    if (!Array.isArray(parsed.comas)) return null
     return parsed
   } catch {
     return null

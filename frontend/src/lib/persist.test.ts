@@ -44,14 +44,21 @@ describe('serializeWork / deserializeWork', () => {
     expect(snapshot.title).toBe('ねこの一日')
   })
 
+  it('v1 の autoPlay:false は当時の既定なので、自動めくりオンで復元する', () => {
+    // 自動めくりの既定がオフだった頃の保存データ。false は本人の意思とは限らない。
+    const saved = serializeWork({ ...snap([coma('p', 50, [line('l1', 'あ')])]), autoPlay: false }, new Map())
+    expect(deserializeWork({ ...saved, v: 1 }).snapshot.autoPlay).toBe(true)
+  })
+
   it('autoPlay が無い旧データは自動めくりオンで復元する', () => {
     const saved = serializeWork(snap([coma('p', 50, [line('l1', 'あ')])]), new Map())
     delete (saved as Partial<typeof saved>).autoPlay
     expect(deserializeWork(saved as typeof saved).snapshot.autoPlay).toBe(true)
   })
 
-  it('autoPlay を切ってあればオフのまま復元する', () => {
+  it('v2 で autoPlay を切ってあればオフのまま復元する', () => {
     const saved = serializeWork({ ...snap([coma('p', 50, [line('l1', 'あ')])]), autoPlay: false }, new Map())
+    expect(saved.v).toBe(2)
     expect(deserializeWork(saved).snapshot.autoPlay).toBe(false)
   })
 
@@ -109,10 +116,18 @@ describe('loadWork / persistWork', () => {
     expect(loadWork()).toBeNull()
   })
 
-  it('壊れたJSONや別バージョンは null（初期状態で起動）', () => {
+  it('壊れたJSONや知らないバージョンは null（初期状態で起動）', () => {
     localStorage.setItem('vct.work.v1', '{こわれてる')
     expect(loadWork()).toBeNull()
-    localStorage.setItem('vct.work.v1', JSON.stringify({ v: 99 }))
+    localStorage.setItem('vct.work.v1', JSON.stringify({ v: 99, comas: [] }))
     expect(loadWork()).toBeNull()
+  })
+
+  it('v1 の保存データも読める（授業中のリロードで作品を失わない）', () => {
+    localStorage.setItem(
+      'vct.work.v1',
+      JSON.stringify({ v: 1, savedAt: 0, started: true, active: 'editor', autoPlay: false, comas: [] }),
+    )
+    expect(loadWork()?.v).toBe(1)
   })
 })

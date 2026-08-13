@@ -37,7 +37,9 @@ async def generate_comic_voices(
     data = await audio.read()
     suffix = Path(audio.filename or "ref").suffix or ".webm"
     src = save_upload(data, suffix=suffix)
-    ref_wav = convert_to_wav(src)
+    # 前後の無音は落とす。残したままだと声クローンが「間」ごと真似て、
+    # 生成音声の頭に無音が入ってしまう。
+    ref_wav = convert_to_wav(src, trim_silence=True)
 
     try:
         # 1つのColabにつき生成は1件ずつ。混雑時は順番待ちになる。

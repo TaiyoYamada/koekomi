@@ -4,7 +4,7 @@ import { Ruby } from '../components/Furigana'
 import { Icon } from '../components/icons'
 import { useApp } from '../state'
 import { isRecordingSupported, startRecording, type ActiveRecorder } from '../lib/recorder'
-import { REFERENCE_SCRIPT } from '../lib/script'
+import { REFERENCE_SCRIPT_LINES } from '../lib/script'
 import { VoiceTryout } from '../components/VoiceTryout'
 
 function fmt(sec: number): string {
@@ -60,7 +60,11 @@ export function Record() {
       />
 
       <div className="card script-card">
-        <p className="script-text">{REFERENCE_SCRIPT}</p>
+        {REFERENCE_SCRIPT_LINES.map((line) => (
+          <p key={line} className="script-text">
+            {line}
+          </p>
+        ))}
       </div>
 
       {!supported && (
@@ -79,7 +83,8 @@ export function Record() {
         </div>
       )}
 
-      <div className="card center">
+      {/* 録音ボタンそのものが主役なので、コマでは囲まない。 */}
+      <div className="card bare center">
         {recording && (
           <div className="rec-indicator" role="status">
             <span className="rec-dot" />

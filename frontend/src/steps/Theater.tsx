@@ -30,8 +30,13 @@ export function Theater() {
   const [playingLineId, setPlayingLineId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const cancelRef = useRef(false)
+  // セリフの音声を先に手元へ落としておく（元URL → blob URL）。
+  // 再生時に取りに行くと、字幕は出ているのに音が出ない「空白」ができてしまう。
+  const preloadRef = useRef(new Map<string, string>())
+  const mountedRef = useRef(true)
 
   const [exporting, setExporting] = useState(false)
+  const [aborting, setAborting] = useState(false)
   const [exportPct, setExportPct] = useState(0)
   const [exportError, setExportError] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
@@ -66,31 +71,91 @@ export function Theater() {
     qrForRef.current = null
   }, [comas, gapSec])
 
+  // 先読みの対象。セリフを1文字打つたびに comas の中身は変わるが、
+  // 音声URLの並びが同じなら先読みはやり直さない（毎打鍵の取り直しを防ぐ）。
+  const voiceUrls = useMemo(
+    () => comas.flatMap((c) => c.lines.map((l) => l.voiceUrl).filter((u): u is string => !!u)),
+    [comas],
+  )
+  const voiceKey = voiceUrls.join('\n')
+
+  // セリフの音声を先読みしておく。作品が変わったら要らなくなったぶんは捨てる。
   useEffect(() => {
+    const cache = preloadRef.current
+    const urls = new Set(voiceUrls)
+    for (const [url, objectUrl] of cache) {
+      if (!urls.has(url)) {
+        URL.revokeObjectURL(objectUrl)
+        cache.delete(url)
+      }
+    }
+
+    // 自分の録音（blob URL）はもう手元にあるので取りに行かない。
+    const todo = [...urls].filter((u) => !cache.has(u) && !u.startsWith('blob:'))
+    // 1つずつ順に待つと待ち時間が全部の合計になる。まとめて投げる
+    // （同時接続数はブラウザ側で抑えられるので、ここでは絞らない）。
+    void Promise.all(
+      todo.map(async (url) => {
+        try {
+          const res = await fetch(url)
+          if (!res.ok) return
+          const blob = await res.blob()
+          // 落とし終えたものは捨てずに残す（作品が変わっても取り直さないで済む）。
+          if (!mountedRef.current) return
+          cache.set(url, URL.createObjectURL(blob))
+        } catch {
+          // 先読みできなくても、再生時に元のURLで鳴らすので止めない。
+        }
+      }),
+    )
+    // voiceUrls は voiceKey から導かれるので依存に入れない（毎回再実行させない）。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceKey])
+
+  useEffect(() => {
+    const cache = preloadRef.current
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
       cancelRef.current = true
       stopSpeaking()
       audioRef.current?.pause()
       abortRef.current?.abort()
+      for (const objectUrl of cache.values()) URL.revokeObjectURL(objectUrl)
+      cache.clear()
     }
   }, [])
 
   function playLine(line: Line): Promise<void> {
     return new Promise((resolve) => {
-      setPlayingLineId(line.id)
       if (mode === 'browser-tts') {
+        setPlayingLineId(line.id)
         speak(line.text || '').then(resolve)
         return
       }
       if (!line.voiceUrl) {
+        setPlayingLineId(line.id)
         setTimeout(resolve, 900)
         return
       }
-      const a = new Audio(line.voiceUrl)
+      const a = new Audio(preloadRef.current.get(line.voiceUrl) ?? line.voiceUrl)
       audioRef.current = a
+      // 字幕は音が鳴り出してから出す（読み込みが間に合わなくても、字幕だけ先行しない）。
+      const show = () => setPlayingLineId(line.id)
+      // 声を鳴らせないときは、音声の無いセリフと同じ扱いにする。
+      // 字幕を出さずに素通りすると、前のセリフの字幕が残ったまま写真だけが流れてしまう。
+      const showSilently = () => {
+        show()
+        setTimeout(resolve, 900)
+      }
       a.onended = () => resolve()
-      a.onerror = () => resolve()
-      a.play().catch(() => resolve())
+      a.onerror = showSilently
+      a.onplaying = show
+      a.play().then(show, (err: unknown) => {
+        // 止めるボタンで pause した場合はここに来る。字幕は出さずに終わる。
+        if (err instanceof DOMException && err.name === 'AbortError') resolve()
+        else showSilently()
+      })
     })
   }
 
@@ -144,10 +209,17 @@ export function Theater() {
     return `${safe || 'koekomi-4koma'}.${ext}`
   }
 
+  /** 書き出しを中止する（押した瞬間にボタンの見た目を変えて反応を返す）。 */
+  function cancelExport() {
+    setAborting(true)
+    abortRef.current?.abort()
+  }
+
   async function saveVideo() {
     stop()
     setExportError(false)
     setExportPct(0)
+    setAborting(false)
     setExporting(true)
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -156,6 +228,8 @@ export function Theater() {
         comas,
         panels,
         gapSec,
+        // 劇場で先読み済みの声をそのまま使う（同じ音をもう一度落としてこない）。
+        preloaded: preloadRef.current,
         signal: ctrl.signal,
         onProgress: (r) => setExportPct(Math.round(r * 100)),
       })
@@ -169,6 +243,7 @@ export function Theater() {
       }
     } finally {
       setExporting(false)
+      setAborting(false)
       abortRef.current = null
     }
   }
@@ -298,9 +373,11 @@ export function Theater() {
               <Ruby text="動画(どうが)で保存(ほぞん)" />
             </button>
           ) : (
-            <button className="screen-action recording" onClick={() => abortRef.current?.abort()}>
+            <button className="screen-action recording" onClick={cancelExport} disabled={aborting}>
               <Icon name="stop" size={14} />
-              <Ruby text={`録画中(ろくがちゅう) ${exportPct}%`} />
+              <Ruby
+                text={aborting ? 'とめているよ…' : `録画中(ろくがちゅう) ${exportPct}%`}
+              />
             </button>
           ))}
       </div>

@@ -9,6 +9,7 @@ import {
   extensionFor,
   pickMimeType,
   segmentAt,
+  throwIfAborted,
   totalDurationMs,
 } from './export-video'
 import type { Coma, Line } from '../types'
@@ -156,5 +157,21 @@ describe('pickMimeType', () => {
 
   it('どれも使えなければ null', () => {
     expect(pickMimeType(() => false)).toBeNull()
+  })
+})
+
+describe('throwIfAborted', () => {
+  it('中止されていなければ何も起きない', () => {
+    expect(() => throwIfAborted(undefined)).not.toThrow()
+    expect(() => throwIfAborted(new AbortController().signal)).not.toThrow()
+  })
+
+  it('中止ボタンが押されていたら AbortError で抜ける', () => {
+    const ctrl = new AbortController()
+    ctrl.abort()
+    // 中止は「失敗」ではないので、呼び出し側が AbortError で見分けられること。
+    expect(() => throwIfAborted(ctrl.signal)).toThrowError(
+      expect.objectContaining({ name: 'AbortError' }),
+    )
   })
 })
