@@ -6,6 +6,13 @@ backend/.venv/
 backend/artifacts/
 backend/tmp/
 backend/cache/
+backend/.import_linter_cache/
+playwright-report/
+test-results/
+.e2e-tmp/
+
+# サーバーの OpenAPI から生成する（手で直さない）
+frontend/src/infrastructure/apiSchema.ts
 
 # 生成される画像のマニフェスト（スクリプトが書き出す）
 frontend/public/panels/manifest.json

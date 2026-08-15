@@ -16,7 +16,7 @@
     "lint": "npm run lint:js && npm run lint:py",
     "lint:js": "npm run lint --workspace frontend",
     "lint:fix": "npm run lint --workspace frontend -- --fix",
-    "lint:py": "bash scripts/py.sh ruff check backend colab",
+    "lint:py": "bash scripts/py.sh ruff check backend colab && npm run lint:imports && npm run typecheck:py",
     "lint:py:fix": "bash scripts/py.sh ruff check backend colab --fix",
     "format": "prettier --write . && npm run format:py",
     "format:check": "prettier --check . && npm run format:py:check",
@@ -26,9 +26,18 @@
     "test": "npm run test:js && npm run test:py",
     "test:js": "npm run test:run --workspace frontend",
     "test:py": "cd backend && bash ../scripts/py.sh pytest",
-    "backend:dev": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+    "backend:dev": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "api:types": "bash scripts/gen-api-types.sh",
+    "api:types:check": "bash scripts/gen-api-types.sh && git diff --exit-code --stat frontend/src/infrastructure/openapi.json frontend/src/infrastructure/apiSchema.ts",
+    "load-test": "python3 scripts/load-test.py",
+    "lint:imports": "cd backend && bash ../scripts/py.sh lint-imports --config .importlinter",
+    "typecheck:py": "cd backend && bash ../scripts/py.sh mypy",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "prettier": "^3.9.6"
   },
   "engines": {

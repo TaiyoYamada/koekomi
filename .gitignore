@@ -21,3 +21,11 @@ backend/.env
 
 # Colab / runtime
 colab/.env
+.e2e-tmp/
+playwright-report/
+test-results/
+
+# 静的検査のキャッシュ
+backend/.import_linter_cache/
+backend/.mypy_cache/
+.ruff_cache/
