@@ -5,13 +5,11 @@
 
 from __future__ import annotations
 
-import logging
-
+from .infrastructure.logging_setup import setup_logging
 from .interface.http import create_app
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(name)s %(levelname)s %(message)s",
-)
+# ふだんは人が読む形。イベント本番は LOG_FORMAT=json にすると、
+# あとから scripts/event-report.py で集計できる。
+setup_logging()
 
 app = create_app()
