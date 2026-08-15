@@ -20,8 +20,19 @@ if [ -z "$TOOL" ]; then
 fi
 shift
 
+# venv を優先する。解決の順番が大事:
+#
+#   1. `python -m <tool>` … いちばん確実（venv を作り直したり移動しても動く）
+#   2. コンソールスクリプト … `lint-imports` のように -m で呼べないもの用。
+#      ただし shebang に作成時のパスが焼き込まれているので、venv を移動すると
+#      壊れる。だから 2 番目に置く。
 if [ -x "$VENV/python" ]; then
-  exec "$VENV/python" -m "$TOOL" "$@"
+  if "$VENV/python" -c "import importlib,sys; importlib.import_module(sys.argv[1])" "$TOOL" 2>/dev/null; then
+    exec "$VENV/python" -m "$TOOL" "$@"
+  fi
+  if [ -x "$VENV/$TOOL" ]; then
+    exec "$VENV/$TOOL" "$@"
+  fi
 fi
 
 if command -v "$TOOL" >/dev/null 2>&1; then

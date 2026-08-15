@@ -12,6 +12,7 @@ import threading
 from dataclasses import dataclass, field
 
 from ..application.jobs import JobService
+from ..application.ports import TTSPort
 from ..application.render import RenderService
 from ..application.voices import VoiceService
 from ..infrastructure.artifact_store import FsArtifactStore
@@ -119,7 +120,7 @@ class Container:
 
     # ---- 内部 -------------------------------------------------------------
 
-    def _build_tts(self, settings: Settings):
+    def _build_tts(self, settings: Settings) -> TTSPort:
         backend = settings.tts_backend.lower()
         if backend != "qwen":
             if backend != "dummy":

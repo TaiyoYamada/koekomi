@@ -20,8 +20,12 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from ..domain.timeline import FRAME_HEIGHT, FRAME_WIDTH, Timeline
+
+if TYPE_CHECKING:  # 実行時には import しない（Pillow はレンダリング時だけ要る）
+    from PIL import Image
 
 log = logging.getLogger("koekomi.video")
 
@@ -161,9 +165,15 @@ class FfmpegVideoRenderer:
         cmd += ["-f", "concat", "-safe", "0", "-i", str(concat)]
 
         # 音声を鳴らす区間を、開始時刻ぶん遅らせて重ねる。
-        voiced = [s for s in timeline.segments if s.artifact_id and s.artifact_id in audio_files]
-        for seg in voiced:
-            cmd += ["-i", str(audio_files[seg.artifact_id])]
+        # (開始時刻, ファイル) の組にしておく。あとで artifact_id を引き直すと
+        # 「None かもしれない値でキーを引く」形になり、型でも実装でも危うい。
+        voiced: list[tuple[int, Path]] = [
+            (s.start_ms, audio_files[s.artifact_id])
+            for s in timeline.segments
+            if s.artifact_id is not None and s.artifact_id in audio_files
+        ]
+        for _, path in voiced:
+            cmd += ["-i", str(path)]
 
         # 映像は必ずフィルタで等間隔に展開する。
         #
@@ -177,8 +187,8 @@ class FfmpegVideoRenderer:
 
         if voiced:
             parts = [video_chain]
-            for i, seg in enumerate(voiced, start=1):
-                parts.append(f"[{i}:a]aresample=44100,adelay=delays={seg.start_ms}:all=1[a{i}]")
+            for i, (start_ms, _) in enumerate(voiced, start=1):
+                parts.append(f"[{i}:a]aresample=44100,adelay=delays={start_ms}:all=1[a{i}]")
             mix_inputs = "".join(f"[a{i}]" for i in range(1, len(voiced) + 1))
             parts.append(f"{mix_inputs}amix=inputs={len(voiced)}:normalize=0:dropout_transition=0,apad[aout]")
             cmd += ["-filter_complex", ";".join(parts), "-map", "[v]", "-map", "[aout]"]
@@ -223,7 +233,7 @@ class FfmpegVideoRenderer:
 # ---- 1フレームの描画（クライアントの drawFrame と同じ見た目にする） ----------
 
 
-def _compose_frame(panel, subtitle: str, font_path: str):
+def _compose_frame(panel: Image.Image | None, subtitle: str, font_path: str) -> Image.Image:
     from PIL import Image, ImageDraw, ImageFont
 
     w, h = FRAME_WIDTH, FRAME_HEIGHT
@@ -258,7 +268,7 @@ def _compose_frame(panel, subtitle: str, font_path: str):
     return canvas
 
 
-def _load_font(image_font_module, path: str, size: int):
+def _load_font(image_font_module: Any, path: str, size: int) -> Any:
     try:
         # .ttc は最初のフェイスを使う。
         return image_font_module.truetype(path, size, index=0)
@@ -266,20 +276,20 @@ def _load_font(image_font_module, path: str, size: int):
         return image_font_module.truetype(path, size)
 
 
-def _cover(img, w: int, h: int):
+def _cover(img: Image.Image, w: int, h: int) -> Image.Image:
     """object-fit: cover 相当（中央固定）。"""
     from PIL import Image
 
     iw, ih = img.size
     scale = max(w / iw, h / ih)
     nw, nh = max(1, round(iw * scale)), max(1, round(ih * scale))
-    resized = img.resize((nw, nh), Image.LANCZOS)
+    resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
     left = (nw - w) // 2
     top = (nh - h) // 2
     return resized.crop((left, top, left + w, top + h))
 
 
-def _paint_scrim(canvas, top: int, bottom: int) -> None:
+def _paint_scrim(canvas: Image.Image, top: int, bottom: int) -> None:
     """下端に向かって濃くなる黒のグラデーションを重ねる。"""
     from PIL import Image
 
@@ -293,7 +303,7 @@ def _paint_scrim(canvas, top: int, bottom: int) -> None:
     canvas.paste(black, (0, top), mask)
 
 
-def _wrap(draw, text: str, font, max_width: float) -> list[str]:
+def _wrap(draw: Any, text: str, font: Any, max_width: float) -> list[str]:
     """日本語は単語区切りが無いので1文字ずつ詰める（クライアントと同じ規則）。"""
     lines: list[str] = []
     line = ""

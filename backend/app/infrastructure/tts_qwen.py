@@ -65,7 +65,9 @@ class QwenTTS:
     def __init__(self, *, model_name: str, language: str, serialize: bool = True) -> None:
         self._model_name = model_name
         self._language = language
-        self._model = None
+        # 型を書かないと mypy が None 固定と見なし、読み込み後の分岐を
+        # 「到達しないコード」と誤判定する。
+        self._model: Any | None = None
         self._ready = False
         self._load_lock = threading.Lock()
         # GPU 推論はモデル実装がスレッドセーフとは限らない。既定は直列。
@@ -114,7 +116,7 @@ class QwenTTS:
 
     # ---- 内部 -------------------------------------------------------------
 
-    def _generate(self, model: Any, handle: _Voice, text: str):
+    def _generate(self, model: Any, handle: _Voice, text: str) -> tuple[Any, int]:
         return model.generate_voice_clone(
             text=text,
             language=self._language,
@@ -122,12 +124,17 @@ class QwenTTS:
             ref_text=handle.reference_text,
         )
 
-    def _load(self):
+    def _load(self) -> Any:
         if self._model is not None:
             return self._model
         with self._load_lock:
+            # ダブルチェックロッキング。ロックを待っている間に、別のスレッドが
+            # 読み込みを終えていることがある（モデルの読み込みは数分かかるので、
+            # ここを削ると全ワーカーが同じモデルを重複ロードして OOM になる）。
+            # mypy は上の分岐で None に絞り込むため到達不能と判断するが、
+            # 並行実行を表現できないだけで、この検査は必要。
             if self._model is not None:
-                return self._model
+                return self._model  # type: ignore[unreachable]
             import torch
             from qwen_tts import Qwen3TTSModel
 
@@ -154,7 +161,7 @@ class QwenTTS:
             return self._model
 
 
-def trim_silence(wav, sr: int):
+def trim_silence(wav: Any, sr: int) -> Any:
     """波形の前後の無音を落とす。全部が無音なら元のまま返す。"""
     import numpy as np
 
@@ -175,7 +182,7 @@ def trim_silence(wav, sr: int):
     return arr[start:end]
 
 
-def _wav_bytes(data, sr: int) -> bytes:
+def _wav_bytes(data: Any, sr: int) -> bytes:
     import soundfile as sf
 
     buf = io.BytesIO()

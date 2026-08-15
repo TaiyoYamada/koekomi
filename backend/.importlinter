@@ -1,0 +1,55 @@
+# 層の依存契約。ESLint がフロントで守っているのと同じことを Python でも守る。
+#
+#   ruff は「書き方」を見るが、「どの層がどの層に依存してよいか」は見ない。
+#   ここが崩れると、時間とともに元の「全層がグローバルに依存する」形に戻る。
+#
+#   実行: bash scripts/py.sh lint_imports --config backend/.importlinter
+
+[importlinter]
+root_packages =
+    app
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = 層は内向きにしか依存しない
+type = layers
+layers =
+    app.interface
+    app.application
+    app.domain
+exhaustive = False
+
+[importlinter:contract:domain-is-pure]
+name = domain は外の世界を知らない
+type = forbidden
+source_modules =
+    app.domain
+forbidden_modules =
+    fastapi
+    pydantic
+    uvicorn
+    requests
+    urllib
+    subprocess
+    PIL
+    torch
+    soundfile
+
+[importlinter:contract:application-knows-no-frameworks]
+name = application は Web フレームワークを知らない
+type = forbidden
+source_modules =
+    app.application
+forbidden_modules =
+    fastapi
+    starlette
+    uvicorn
+
+[importlinter:contract:application-uses-ports]
+name = application は具体的な実装を直接使わない（ポート越しに触る）
+type = forbidden
+source_modules =
+    app.application
+forbidden_modules =
+    app.infrastructure
+    app.interface
