@@ -167,7 +167,8 @@ def _download_cloudflared() -> str:
         os.remove(path)
     url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
     tmp = path + ".download"
-    urllib.request.urlretrieve(url, tmp)  # noqa: S310 (github 公式リリース)
+    # 取得先は GitHub の公式リリース固定（ユーザー入力は入らない）。
+    urllib.request.urlretrieve(url, tmp)
     if not _is_elf(tmp):
         os.remove(tmp)
         raise RuntimeError("cloudflared のダウンロードが壊れていました。もう一度実行してください。")

@@ -630,7 +630,7 @@
         "properties": {
           "audio": {
             "type": "string",
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "Audio"
           },
           "reference_text": {
@@ -647,7 +647,7 @@
         "properties": {
           "video": {
             "type": "string",
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "Video"
           }
         },
@@ -1160,6 +1160,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",

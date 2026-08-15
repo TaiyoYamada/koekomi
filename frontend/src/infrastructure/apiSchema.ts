@@ -241,10 +241,7 @@ export interface components {
         };
         /** Body_enroll_voice_voices_post */
         Body_enroll_voice_voices_post: {
-            /**
-             * Audio
-             * Format: binary
-             */
+            /** Audio */
             audio: string;
             /**
              * Reference Text
@@ -254,10 +251,7 @@ export interface components {
         };
         /** Body_upload_artifact_artifacts_post */
         Body_upload_artifact_artifacts_post: {
-            /**
-             * Video
-             * Format: binary
-             */
+            /** Video */
             video: string;
         };
         /** CancelResponse */
@@ -483,6 +477,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
          * VoiceResponse
