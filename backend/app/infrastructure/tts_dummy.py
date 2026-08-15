@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import io
 import math
+import os
 import struct
 import threading
+import time
 import wave
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,10 +39,24 @@ class DummyVoice:
 
 
 class DummyTTS:
+    """本物の合成はしないが、**本番の混み方は再現できる**。
+
+    `TTS_FAKE_DELAY_SEC` に1行あたりの秒数を入れると、その時間だけ待つ。
+    GPU 実機で1行の生成時間を測ったら、その値を入れてローカルで
+    `scripts/load-test.py` を回せば、当日の待ち行列をGPU無しでリハーサルできる。
+    既定は 0（CI とふだんの開発は速いまま）。
+    """
+
     name = "dummy"
 
-    def __init__(self) -> None:
+    def __init__(self, fake_delay_sec: float | None = None) -> None:
         self._ready = True
+        if fake_delay_sec is None:
+            try:
+                fake_delay_sec = float(os.getenv("TTS_FAKE_DELAY_SEC", "0"))
+            except ValueError:
+                fake_delay_sec = 0.0
+        self._delay = max(0.0, fake_delay_sec)
 
     def enroll(self, wav: Path, reference_text: str) -> DummyVoice:
         # 参照音声のサイズを種にして、子どもごとに音の並びを変える。
@@ -51,6 +67,9 @@ class DummyTTS:
         return DummyVoice(reference_text=reference_text, seed=seed)
 
     def synthesize(self, handle: DummyVoice, text: str) -> bytes:
+        # 本番の1行あたりの所要時間を模す（負荷テスト用。既定は待たない）。
+        if self._delay:
+            time.sleep(self._delay)
         # セリフの長さに応じて再生時間を変える（最低 0.8 秒）。
         seconds = max(0.8, min(4.0, len(text) * 0.18))
         return _tone_wav_bytes(handle.next_freq(), seconds)
