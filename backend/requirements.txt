@@ -2,9 +2,13 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-multipart==0.0.9
-requests==2.32.3
+requests==2.32.3        # colab_runner が GAS への登録・heartbeat に使う
 
-# ===== AI バックエンド（Qwen3-TTS / Whisper）=====
-# 既定は Qwen3-TTS + Whisper。重い依存は backend/requirements-ai.txt に分離している。
-# Colab では colab_runner が（dummy 以外のとき）自動で requirements-ai.txt も入れる。
+# 動画のサーバー側レンダリング（字幕の焼き込み）。
+# 軽いのでここに入れる。日本語フォントは OS 側に必要（Colab は fonts-noto-cjk）。
+pillow==11.0.0
+
+# ===== AI バックエンド（Qwen3-TTS）=====
+# 重い依存は backend/requirements-ai.txt に分離している。
+# Colab では colab_runner が（dummy 以外のとき）自動で入れる。
 #   pip install -r backend/requirements-ai.txt
