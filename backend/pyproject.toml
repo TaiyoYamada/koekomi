@@ -1,15 +1,73 @@
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# 仮想環境と生成物は見ない。
+extend-exclude = [".venv", "artifacts", "tmp", "cache"]
+# ノートブックは Colab のマジック（!git clone / %run）を含み、
+# 素の Python として解釈できないので lint の対象にしない。
+extend-include = []
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = [
+    "E",    # pycodestyle エラー
+    "W",    # pycodestyle 警告
+    "F",    # pyflakes（未使用・未定義）
+    "I",    # import の並び
+    "UP",   # 新しい書き方への更新
+    "B",    # bugbear（ありがちなバグ）
+    "C4",   # 内包表記まわり
+    "SIM",  # 単純化できる書き方
+    "RET",  # return まわり
+    "PTH",  # os.path ではなく pathlib
+    "T20",  # print を残さない（ログを使う）
+    "ARG",  # 使っていない引数
+    "RUF",  # ruff 独自
+    "S",    # bandit（セキュリティ）
+    "ASYNC",# async の落とし穴
+    "LOG",  # logging の使い方
+    "G",    # logging のフォーマット
+]
+ignore = [
+    # 例外連鎖は握りつぶしを明示している箇所が多く、個別に from を付けている。
+    "B904",
+    # assert はテストで使う（下で per-file 無効化するが、本体でも稀に使う）。
+    "S101",
+    # 全角文字を「紛らわしい」と警告する規則。このリポジトリはコメントも
+    # docstring も日本語なので、全部が誤検知になる（308件）。
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+# 相対 import（..domain など）は層構造の表現として意図的に使うため、
+# TID252 は有効にしない（select から TID を外している）。
 
 # FastAPI の Depends/File/Form/Query は引数デフォルトで呼ぶのが正しい使い方なので
 # B008（関数呼び出しをデフォルト値にしない）の対象から除外する。
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.File", "fastapi.Form", "fastapi.Query"]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Query",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# テストでは assert・ハードコードされた値・print を許す。
+"tests/**" = ["S", "ARG", "T20", "SIM"]
+# ffmpeg を起動するのが仕事のモジュール。引数は自分で組み立てており、
+# ユーザー入力をシェルに渡していない（shell=False）。
+"app/infrastructure/audio.py" = ["S603"]
+"app/infrastructure/video_ffmpeg.py" = ["S603"]
+# 取得先はサーバー起動時に決めた固定オリジンのみ（SSRF はパス検証で防いでいる）。
+"app/infrastructure/panels.py" = ["S310"]
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning:app.*"]

@@ -1,0 +1,17 @@
+# 生成物・依存
+node_modules/
+dist/
+coverage/
+backend/.venv/
+backend/artifacts/
+backend/tmp/
+backend/cache/
+
+# 生成される画像のマニフェスト（スクリプトが書き出す）
+frontend/public/panels/manifest.json
+
+# Python は ruff format が担当する
+*.py
+
+# Google Apps Script は GAS エディタの整形に合わせる
+gas/

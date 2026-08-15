@@ -1,0 +1,32 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# TypeScript / React。Prettier の設定（.prettierrc.json）と合わせること。
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2
+max_line_length = 100
+
+# Python。ruff の設定（backend/pyproject.toml）と合わせること。
+[*.py]
+indent_size = 4
+max_line_length = 120
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
+
+# Google Apps Script（gas/）
+[*.gs]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[{Makefile,*.mk}]
+indent_style = tab

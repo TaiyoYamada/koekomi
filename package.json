@@ -1,6 +1,6 @@
 {
   "name": "koekomi",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "コエコミ — 声でつくる4コマ劇場。小学生向けイベント用 Web アプリ (monorepo)",
   "workspaces": [
@@ -11,7 +11,25 @@
     "build": "npm run build --workspace frontend",
     "preview": "npm run preview --workspace frontend",
     "panels": "node frontend/scripts/generate-panels.mjs",
-    "backend:dev": "echo 'cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "fix": "npm run format && npm run lint:fix && npm run lint:py:fix",
+    "lint": "npm run lint:js && npm run lint:py",
+    "lint:js": "npm run lint --workspace frontend",
+    "lint:fix": "npm run lint --workspace frontend -- --fix",
+    "lint:py": "bash scripts/py.sh ruff check backend colab",
+    "lint:py:fix": "bash scripts/py.sh ruff check backend colab --fix",
+    "format": "prettier --write . && npm run format:py",
+    "format:check": "prettier --check . && npm run format:py:check",
+    "format:py": "bash scripts/py.sh ruff format backend colab",
+    "format:py:check": "bash scripts/py.sh ruff format --check backend colab",
+    "typecheck": "npm run typecheck --workspace frontend",
+    "test": "npm run test:js && npm run test:py",
+    "test:js": "npm run test:run --workspace frontend",
+    "test:py": "cd backend && bash ../scripts/py.sh pytest",
+    "backend:dev": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
   },
   "engines": {
     "node": ">=18"

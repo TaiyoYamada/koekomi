@@ -52,7 +52,9 @@ function cornerMask(size) {
 
 const { width, height } = await sharp(master).metadata()
 if (width !== height) {
-  console.warn(`警告: マスターが正方形ではありません (${width}x${height})。中央でトリミングします。`)
+  console.warn(
+    `警告: マスターが正方形ではありません (${width}x${height})。中央でトリミングします。`,
+  )
 }
 
 for (const { file, size, maskable, rounded } of targets) {
@@ -61,15 +63,13 @@ for (const { file, size, maskable, rounded } of targets) {
 
   const out = maskable
     ? // 絵柄を78%に縮め、残りを背景色で埋めて安全域を確保する。
-      base
-        .resize(Math.round(size * 0.78), Math.round(size * 0.78), { fit: 'cover' })
-        .extend({
-          top: Math.round(size * 0.11),
-          bottom: size - Math.round(size * 0.78) - Math.round(size * 0.11),
-          left: Math.round(size * 0.11),
-          right: size - Math.round(size * 0.78) - Math.round(size * 0.11),
-          background: BG,
-        })
+      base.resize(Math.round(size * 0.78), Math.round(size * 0.78), { fit: 'cover' }).extend({
+        top: Math.round(size * 0.11),
+        bottom: size - Math.round(size * 0.78) - Math.round(size * 0.11),
+        left: Math.round(size * 0.11),
+        right: size - Math.round(size * 0.78) - Math.round(size * 0.11),
+        background: BG,
+      })
     : base.resize(size, size, { fit: 'cover', position: 'center' })
 
   // 角を落とすぶんだけ、その外側は透明に戻す。
@@ -122,7 +122,9 @@ while (stack.length) {
 }
 
 // 透明な余白を切り詰めてから、正方形の中央に置き直す（呼び出し側で幅=高さで扱えるように）。
-const cut = await sharp(data, { raw: { width: w, height: h, channels: ch } }).png().toBuffer()
+const cut = await sharp(data, { raw: { width: w, height: h, channels: ch } })
+  .png()
+  .toBuffer()
 const trimmed = await sharp(cut).trim().png().toBuffer()
 const tm = await sharp(trimmed).metadata()
 const side = Math.max(tm.width, tm.height)

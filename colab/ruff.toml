@@ -1,0 +1,14 @@
+# Colab 起動スクリプト用の設定。共通ルールはバックエンドから引き継ぐ。
+extend = "../backend/pyproject.toml"
+
+# ノートブックは Colab のマジック（!git clone / %run）を含み、
+# 素の Python として解釈できないので対象外にする。
+extend-exclude = ["*.ipynb"]
+
+[lint.per-file-ignores]
+# T201  print が唯一の出力手段（ノートブックのセルに出す）
+# S603/S607  cloudflared / pip / apt を起動するのが仕事。引数は自分で組み立てている
+# S104  0.0.0.0 で待ち受けるのは意図どおり（トンネルから入ってくる）
+# S103  cloudflared に実行権限を与える必要がある
+# PTH   1ファイルのスクリプトなので os.path のままにする
+"*.py" = ["T201", "S603", "S607", "S104", "S103", "PTH"]
