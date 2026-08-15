@@ -2,7 +2,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-multipart==0.0.9
-requests==2.32.3        # colab_runner が GAS への登録・heartbeat に使う
+requests==2.34.2        # colab_runner が GAS への登録・heartbeat に使う
 
 # 動画のサーバー側レンダリング（字幕の焼き込み）。
 # 軽いのでここに入れる。日本語フォントは OS 側に必要（Colab は fonts-noto-cjk）。
