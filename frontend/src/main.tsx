@@ -6,11 +6,15 @@ import { AdminPanel } from './ui/admin/AdminPanel'
 import { Privacy } from './ui/Privacy'
 import { HowToPlay } from './ui/HowToPlay'
 import { startPersistence } from './application/persistence'
+import { registerServiceWorker } from './infrastructure/serviceWorker'
 import './styles.css'
 
 // 保存の復元と購読を、React が立ち上がる前に一度だけ始める。
 // ストアは永続化を知らず、こちらがストアを購読する（依存の向きを内向きに保つ）。
 startPersistence()
+
+// 学校のWi-Fiが切れてもアプリが開くようにする（本番ビルドのみ）。
+registerServiceWorker()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

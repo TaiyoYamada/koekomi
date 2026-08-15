@@ -5,6 +5,7 @@ import { colorDef } from '../colors'
 import {
   fetchFleetStatus,
   readRegistryUrl,
+  unregisterServiceWorker,
   writeRegistryUrl,
   type ServerStatus,
 } from '../../application/ops'
@@ -206,6 +207,24 @@ export function AdminPanel() {
             反映
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <h3>アプリのキャッシュ</h3>
+        <p className="step-hint" style={{ marginTop: 0 }}>
+          オフラインでも開けるよう、アプリ本体と写真を端末に保存しています。
+          更新が反映されない・表示がおかしいときはここから消して、画面を再読み込みしてください。
+        </p>
+        <button
+          className="btn secondary"
+          onClick={() => {
+            void unregisterServiceWorker().then(() =>
+              alert('消しました。画面を再読み込みしてください。'),
+            )
+          }}
+        >
+          キャッシュを消す
+        </button>
       </div>
 
       <div className="card">

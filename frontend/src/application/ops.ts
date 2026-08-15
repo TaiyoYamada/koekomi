@@ -29,6 +29,9 @@ export function isUsable(status: ServerStatus): boolean {
   return status.health?.status === 'ok'
 }
 
+/** アプリのキャッシュを捨てる（更新が反映されないときの逃げ道）。 */
+export { unregisterServiceWorker } from '../infrastructure/serviceWorker'
+
 /** 名簿URLの読み書き（当日、再ビルドせず差し替えるため）。 */
 export function readRegistryUrl(): string {
   return getGasUrl()
