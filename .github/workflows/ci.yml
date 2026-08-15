@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -11,7 +12,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend (lint / typecheck / test / build)
+    name: Frontend (lint / format / typecheck / test / build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +25,11 @@ jobs:
       - name: Install
         run: npm ci
 
-      # パネル画像は実画像を frontend/public/panels/ にコミット済みなので、
-      # ここで生成しない。npm run panels はダミーSVGと manifest.json を
-      # 上書きしてしまい、本番と違う構成でビルドすることになる。
+      # 整形は Prettier に一本化している。ローカルで `npm run format` を
+      # 忘れた PR をここで止める。
+      - name: Format check
+        run: npx prettier --check .
+
       - name: Lint
         run: npm run lint --workspace frontend
 
@@ -36,32 +39,86 @@ jobs:
       - name: Test
         run: npm run test:run --workspace frontend
 
+      # パネル画像は実画像を frontend/public/panels/ にコミット済みなので、
+      # ここで生成しない（npm run panels はダミーSVGで上書きしてしまう）。
       - name: Build
         run: npm run build --workspace frontend
 
   backend:
     name: Backend (ruff / pytest)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: pip
           cache-dependency-path: backend/requirements-dev.txt
 
       - name: Install
-        run: pip install -r requirements-dev.txt
+        run: pip install -r backend/requirements-dev.txt
 
+      # backend と colab（Colab起動スクリプト）の両方を見る。
       - name: Ruff (lint)
-        run: ruff check .
+        run: ruff check backend colab
 
       - name: Ruff (format check)
-        run: ruff format --check .
+        run: ruff format --check backend colab
 
       - name: Pytest
+        working-directory: backend
         run: pytest
+
+  smoke:
+    name: E2E (本番と同じ経路を通す)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # ffmpeg と日本語フォントを入れて、動画レンダリングまで通す。
+      # Colab に近い構成にしておかないと、当日はじめて壊れる。
+      - name: Install ffmpeg and Japanese font
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-noto-cjk
+
+      - name: Install
+        run: pip install -r backend/requirements.txt
+
+      - name: Shell syntax
+        run: bash -n scripts/smoke-test.sh && bash -n scripts/test-gas.sh && bash -n scripts/py.sh
+
+      # 写真の取得元。public をそのまま配れば足りる。
+      - name: Serve frontend assets
+        run: python3 -m http.server 8080 --directory frontend/public &
+
+      - name: Start backend
+        working-directory: backend
+        env:
+          TTS_BACKEND: dummy
+          EVENT_TOKEN: ci-token
+          FRONTEND_ORIGIN: http://127.0.0.1:8080
+          CORS_ORIGINS: http://127.0.0.1:8080
+        run: |
+          python -m uvicorn app.main:app --port 8765 --log-level warning &
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8765/health >/dev/null && break
+            sleep 1
+          done
+
+      # /health → /voices → /jobs → /artifacts → /render → 認証 まで通す。
+      # dummy TTS なので「AI音声が有効」だけは落ちる想定 → そこを許容して判定する。
+      - name: Smoke test
+        run: |
+          set -o pipefail
+          bash scripts/smoke-test.sh http://127.0.0.1:8765 ci-token 2>&1 | tee /tmp/smoke.log || true
+          echo "--- 判定 ---"
+          grep -q "音声を取得できた" /tmp/smoke.log || { echo "❌ 音声生成の経路が壊れています"; exit 1; }
+          grep -q "動画を作れた"   /tmp/smoke.log || { echo "❌ サーバー側レンダリングが壊れています"; exit 1; }
+          grep -q "トークン無しは 401" /tmp/smoke.log || { echo "❌ 認証が効いていません"; exit 1; }
+          echo "✅ 本番の経路が通りました"
