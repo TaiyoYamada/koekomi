@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# GAS（サーバーレジストリ）の動作確認スクリプト。
+# GAS（サーバー名簿）の動作確認。
 #
-#   使い方:
-#     bash scripts/test-gas.sh "https://script.google.com/macros/s/XXXX/exec"
+#   bash scripts/test-gas.sh "https://script.google.com/macros/s/XXXX/exec"
 #
-# register → list → assign → heartbeat → list の順に叩き、
-# レジストリのロジックが期待どおり動くかを確認する。
+# register → list → heartbeat → list を叩く。
+# assign / release / presence は廃止した（負荷分散をやめたため）。
 
 set -euo pipefail
 
@@ -26,23 +25,20 @@ post() { curl -sS -L -o /dev/null -w "  -> HTTP %{http_code}\n" "$@"; }
 echo "--- 1) register（ダミーサーバーを登録）---"
 post -X POST "$GAS_URL?action=register" \
   -H "Content-Type: application/json" \
-  -d "{\"serverId\":\"$SID\",\"color\":\"red\",\"label\":\"テスト赤\",\"apiUrl\":\"https://example.com\",\"capacity\":2}"
+  -d "{\"serverId\":\"$SID\",\"color\":\"red\",\"label\":\"テスト赤\",\"apiUrl\":\"https://example.com\"}"
 
-echo "--- 2) list（登録された？ assignedCount=0 / enabled=true / lastSeen 更新）---"
+echo "--- 2) list（enabled=true / lastSeen が入っているか）---"
 curl -sS -L "$GAS_URL?action=list"
 echo; echo
 
-echo "--- 3) assign（assignedCount が 1 になる）---"
-post -X POST "$GAS_URL?action=assign&serverId=$SID"
-
-echo "--- 4) heartbeat（lastSeen が更新される）---"
+echo "--- 3) heartbeat（lastSeen が更新される）---"
 post -X POST "$GAS_URL?action=heartbeat" \
   -H "Content-Type: application/json" \
   -d "{\"serverId\":\"$SID\"}"
 
-echo "--- 5) list（assignedCount=1 になっているか確認）---"
+echo "--- 4) list（lastSeen が進んでいるか確認）---"
 curl -sS -L "$GAS_URL?action=list"
 echo; echo
 
-echo "✅ 完了。Google Sheets の servers シートにも $SID の行ができているはず。"
+echo "✅ 完了。Sheets の servers シートに $SID の行ができているはず。"
 echo "   テスト行は手で消すか、?action=disable で無効化してください。"
