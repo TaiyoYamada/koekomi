@@ -213,25 +213,6 @@ def test_partial_failure_keeps_the_good_lines(tmp_path: Path):
         jobs.stop()
 
 
-def test_queue_position_counts_jobs_ahead(tmp_path: Path):
-    """待ち順位が出せること。3分の無言スピナーの代わりになる情報。"""
-    jobs, voices, _ = _job_service(tmp_path, tts=_SlowTTS(delay=0.05))
-    try:
-        voice_id = voices.enroll(b"a", ".wav", "x")
-        first = jobs.submit(voice_id, ["あ"] * 6)
-        second = jobs.submit(voice_id, ["い"] * 6)
-
-        snap = jobs.snapshot(second.id)
-        assert snap is not None
-        assert snap.queue_position >= 1  # 前に1件いる
-
-        _await(jobs, first.id)
-        _await(jobs, second.id)
-        assert jobs.snapshot(second.id).queue_position == 0
-    finally:
-        jobs.stop()
-
-
 def test_cancel_stops_dequeuing_further_lines(tmp_path: Path):
     """協調キャンセル: 走っている1行は終わるが、その先は合成されない。
 
@@ -251,6 +232,65 @@ def test_cancel_stops_dequeuing_further_lines(tmp_path: Path):
         assert done.finished == 50  # 全行ぶん結果は埋まる
         # 合成された行はごく一部にとどまる（残りは取り出されずに終わる）。
         assert tts.calls < 50
+    finally:
+        jobs.stop()
+
+
+def test_lines_are_shared_round_robin_between_children(tmp_path: Path):
+    """複数人が同時に投げたとき、**行を1つずつ交代で**処理すること。
+
+    負荷テストで分かったこと: ジョブ単位の FIFO だと、10人目は前の9人ぶり
+    72行が終わるまで1行も返らず、最初の1行まで108秒かかっていた。
+    交代制にすると全員の1行目が最初の10行以内に返る。
+    総処理時間は変わらないが、子どもの体感がまったく違う。
+    """
+    order: list[str] = []
+
+    class _RecordingTTS(DummyTTS):
+        def synthesize(self, handle, text: str) -> bytes:
+            order.append(text)
+            time.sleep(0.01)
+            return super().synthesize(handle, text)
+
+    jobs, voices, _ = _job_service(tmp_path, tts=_RecordingTTS())
+    try:
+        voice_id = voices.enroll(b"a", ".wav", "x")
+        a = jobs.submit(voice_id, [f"A{i}" for i in range(5)])
+        b = jobs.submit(voice_id, [f"B{i}" for i in range(5)])
+        c = jobs.submit(voice_id, [f"C{i}" for i in range(5)])
+        for snap in (a, b, c):
+            _await(jobs, snap.id)
+
+        # 最初の1周（3行）に、3人ぶんの1行目が出そろっていること。
+        first_round = {text[0] for text in order[:3]}
+        assert first_round == {"A", "B", "C"}, order[:6]
+
+        # 誰かが5行連続で独占していないこと。
+        for i in range(len(order) - 2):
+            window = {text[0] for text in order[i : i + 3]}
+            assert len(window) >= 2, f"独占が起きている: {order[i : i + 3]}"
+    finally:
+        jobs.stop()
+
+
+def test_queue_position_means_how_many_children_share_the_machine(tmp_path: Path):
+    """待ち順位は「前で待っている数」ではなく「一緒に使っている人数」。
+
+    交代制では全員が同時に進むので、「前が終わるまで待つ」という意味は無い。
+    """
+    jobs, voices, _ = _job_service(tmp_path, tts=_SlowTTS(delay=0.05))
+    try:
+        voice_id = voices.enroll(b"a", ".wav", "x")
+        first = jobs.submit(voice_id, ["あ"] * 6)
+        second = jobs.submit(voice_id, ["い"] * 6)
+
+        # 2人が同時に使っている → お互いに「1」。
+        assert jobs.snapshot(first.id).queue_position == 1
+        assert jobs.snapshot(second.id).queue_position == 1
+
+        _await(jobs, first.id)
+        _await(jobs, second.id)
+        assert jobs.snapshot(second.id).queue_position == 0
     finally:
         jobs.stop()
 
