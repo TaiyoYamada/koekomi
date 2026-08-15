@@ -18,8 +18,8 @@ export function ServerBadge({
 }) {
   if (mode !== 'ai') {
     return (
-      <div className="status-pill muted">
-        <span className="status-dot" />
+      <div className="status-pill muted" role="status">
+        <span className="status-dot" aria-hidden />
         <span>オフラインモード</span>
       </div>
     )
@@ -28,8 +28,8 @@ export function ServerBadge({
   if (connection.status === 'connected' && connection.assignment) return null
   if (connection.status === 'connecting' || connection.status === 'idle') {
     return (
-      <div className="status-pill">
-        <span className="status-dot pulsing" />
+      <div className="status-pill" role="status" aria-live="polite">
+        <span className="status-dot pulsing" aria-hidden />
         <span>
           <Ruby text="サーバーに接続中(せつぞくちゅう)…" />
         </span>
@@ -37,8 +37,8 @@ export function ServerBadge({
     )
   }
   return (
-    <div className="status-pill warn">
-      <span className="status-dot" />
+    <div className="status-pill warn" role="alert">
+      <span className="status-dot" aria-hidden />
       <span>
         <Ruby text="サーバーに接続(せつぞく)されていません" />
       </span>

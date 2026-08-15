@@ -19,7 +19,7 @@ export function PanelPicker({
           <strong>
             <Ruby text="写真(しゃしん)を選(えら)ぶ" />
           </strong>
-          <button className="btn secondary" onClick={onClose}>
+          <button className="btn secondary" aria-label="閉じる" onClick={onClose}>
             <Ruby text="閉(と)じる" />
           </button>
         </div>

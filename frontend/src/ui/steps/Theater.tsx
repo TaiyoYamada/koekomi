@@ -243,7 +243,7 @@ export function Theater() {
       />
 
       {sendError && (
-        <div className="banner err">
+        <div className="banner err" role="alert">
           <Ruby text={sendError} />
         </div>
       )}
@@ -272,13 +272,19 @@ export function Theater() {
           (!exporting ? (
             <button
               className="screen-action"
+              aria-label="動画で保存"
               onClick={() => void runExport()}
               disabled={player.playing}
             >
               <Ruby text="動画(どうが)で保存(ほぞん)" />
             </button>
           ) : (
-            <button className="screen-action recording" onClick={cancelExport} disabled={aborting}>
+            <button
+              className="screen-action recording"
+              aria-label="録画をとめる"
+              onClick={cancelExport}
+              disabled={aborting}
+            >
               <Icon name="stop" size={14} />
               <Ruby
                 text={
@@ -294,7 +300,7 @@ export function Theater() {
       </div>
 
       {exporting && (
-        <p className="export-hint">
+        <p className="export-hint" role="status" aria-live="polite">
           <Ruby
             text={
               exportMethod === 'server'
@@ -330,12 +336,17 @@ export function Theater() {
             <Ruby text="◀ 前(まえ)" />
           </button>
           {!player.playing ? (
-            <button className="btn icon-btn" onClick={onPlay} disabled={exporting}>
+            <button
+              className="btn icon-btn"
+              aria-label="再生"
+              onClick={onPlay}
+              disabled={exporting}
+            >
               <Icon name="play" size={22} />
               <Ruby text="再生(さいせい)" />
             </button>
           ) : (
-            <button className="btn stop icon-btn" onClick={stop}>
+            <button className="btn stop icon-btn" aria-label="止める" onClick={stop}>
               <Icon name="stop" size={20} />
               <Ruby text="止(と)める" />
             </button>
@@ -362,7 +373,7 @@ export function Theater() {
       </div>
 
       {exportError && (
-        <div className="banner err">
+        <div className="banner err" role="alert">
           <Ruby text="動画(どうが)を 保存(ほぞん)できなかったよ。もう一度(いちど) ためしてね。" />
         </div>
       )}

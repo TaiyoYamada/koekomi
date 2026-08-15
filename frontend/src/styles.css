@@ -1461,11 +1461,27 @@ rt {
   }
 }
 
-/* 動きを減らす設定を尊重する。 */
+/* 動きを減らす設定を尊重する。
+ *
+ * 前庭障害や、動きに酔いやすい子への配慮。個別に指定していると
+ * アニメーションを足すたびに漏れるので、全体にかける。
+ * 「消す」のではなく「一瞬で終わらせる」ことで、完了イベント（onanimationend 等）
+ * に依存している箇所が壊れないようにする。 */
 @media (prefers-reduced-motion: reduce) {
-  .home-frame,
-  .home-inner .mascot {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* 常時ゆれ続けるものは完全に止める。 */
+  .home-inner .mascot,
+  .rec-dot,
+  .spinner {
+    animation: none !important;
   }
 }
 

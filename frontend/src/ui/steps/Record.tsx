@@ -108,6 +108,7 @@ export function Record() {
         {!recording ? (
           <button
             className="btn rec big icon-btn"
+            aria-label="録音スタート"
             onClick={() => void onStart()}
             disabled={!supported || busy}
           >
@@ -115,7 +116,11 @@ export function Record() {
             <Ruby text="録音(ろくおん)スタート" />
           </button>
         ) : (
-          <button className="btn stop big icon-btn" onClick={() => void onStop()}>
+          <button
+            className="btn stop big icon-btn"
+            aria-label="録音をおわる"
+            onClick={() => void onStop()}
+          >
             <Icon name="stop" size={24} />
             <Ruby text="ここを押(お)して 終(お)わる" />
           </button>

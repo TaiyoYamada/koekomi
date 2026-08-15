@@ -35,7 +35,7 @@ export function Home({ onStart }: { onStart: () => void }) {
             <Ruby text="自分(じぶん)の声(こえ)で 4コマ劇場(げきじょう)を 作(つく)ろう！" />
           </p>
 
-          <button className="btn big home-start" onClick={onStart}>
+          <button className="btn big home-start" aria-label="作ってみよう" onClick={onStart}>
             <Ruby text="作(つく)ってみよう！" />
           </button>
         </div>

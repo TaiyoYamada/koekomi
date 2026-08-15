@@ -53,6 +53,9 @@ export function Sidebar({
             className={'side-item' + (active === it.key ? ' active' : '')}
             onClick={() => onSelect(it.key)}
             aria-current={active === it.key}
+            // ふりがなを二重に読み上げさせない（<ruby> のまま読むと
+            // 「録音 ろくおん」になる）。
+            aria-label={it.name}
           >
             <span className="ic">
               <Icon name={it.icon} size={24} />
@@ -64,7 +67,7 @@ export function Sidebar({
         ))}
       </nav>
       <div className="sidebar-foot">
-        <button className="side-item small" onClick={() => navigate('/how-to')}>
+        <button className="side-item small" aria-label="遊び方" onClick={() => navigate('/how-to')}>
           <span className="ic">
             <Icon name="play" size={20} />
           </span>
@@ -78,7 +81,7 @@ export function Sidebar({
           </span>
           <span className="lb">プライバシー</span>
         </button>
-        <button className="side-item small" onClick={() => navigate('/admin')}>
+        <button className="side-item small" aria-label="設定" onClick={() => navigate('/admin')}>
           <span className="ic">
             <Icon name="settings" size={20} />
           </span>

@@ -76,7 +76,7 @@ export function GenerateVoices() {
         </div>
       )}
       {!busy && gen.error && (
-        <div className="banner err">
+        <div className="banner err" role="alert">
           <Ruby text={gen.error} />
           <br />
           <Ruby text="何度(なんど)もだめなら、先生(せんせい)に言(い)って、別(べつ)のサーバーにつなぎ直(なお)すか、フォールバックモードを使(つか)ってね。" />
@@ -87,6 +87,7 @@ export function GenerateVoices() {
         {!busy ? (
           <button
             className="btn big icon-btn"
+            aria-label={allDone ? 'もう一度作る' : '声を作る'}
             onClick={() => void generateVoices()}
             disabled={!assignment || !hasRecording || targets.length === 0}
           >
@@ -94,7 +95,11 @@ export function GenerateVoices() {
             <Ruby text={allDone ? 'もう一度(いちど)作(つく)る' : '声(こえ)を作(つく)る'} />
           </button>
         ) : (
-          <button className="btn stop big icon-btn" onClick={() => void cancelGeneration()}>
+          <button
+            className="btn stop big icon-btn"
+            aria-label="やめる"
+            onClick={() => void cancelGeneration()}
+          >
             <Icon name="stop" size={20} />
             <Ruby text="やめる" />
           </button>
@@ -130,7 +135,7 @@ export function GenerateVoices() {
       {withVoice.length > 0 && (
         <div className="card">
           {allDone && (
-            <div className="banner ok">
+            <div className="banner ok" role="status">
               <Ruby text="できたよ！1つずつ聞(き)いてみよう。" />
             </div>
           )}

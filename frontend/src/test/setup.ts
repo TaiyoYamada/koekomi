@@ -1,6 +1,9 @@
 // vitest 用の jest-dom（vitest の expect を自動で拡張する）
 import '@testing-library/jest-dom/vitest'
 
+// axe のマッチャ（アクセシビリティの自動検査）
+import 'vitest-axe/extend-expect'
+
 // jsdom には IndexedDB が無い。作品の音声はそこに入るので、
 // 実装を差し替えずに本物と同じ経路を通せるよう、偽の IndexedDB を入れる。
 import 'fake-indexeddb/auto'
