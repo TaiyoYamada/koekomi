@@ -127,26 +127,40 @@ fix/failover-audio
 
 ## 開発コマンド
 
-リポジトリ直下から、両スタックをまとめて回せます。
-
 ```bash
-npm run check        # lint + format確認 + 型 + テスト（PR前にこれ）
-npm run fix          # 自動修正（format + lint --fix）を両スタックに適用
-
-npm run lint         # frontend + backend の lint
-npm run format       # frontend + backend の整形
-npm run format:check  # 整形されているかの確認（CI と同じ）
-npm run typecheck    # frontend の型チェック
-npm run test         # frontend + backend のテスト
+make setup     # 初回。Node と Python の依存を入れる
+make check     # PR前の全確認（format / lint / 型 / テスト）
+make fix       # 自動修正
+make dev       # フロント + バックエンド（ダミーTTS）を同時に起動
+make e2e       # 実ブラウザでの通しテスト
+make help      # 一覧
 ```
 
-バックエンドだけを触るときは:
+`npm run <名前>` でも同じことができます（`check` / `fix` / `lint` / `format` /
+`typecheck` / `test` / `e2e` / `api:types` / `load-test`）。
+
+バックエンドの venv は `scripts/py.sh` が自動で探すので、
+**有効化を忘れても動きます**。
+
+### API の型を変えたとき
+
+フロントの型は **バックエンドの OpenAPI から生成** しています。
+レスポンスモデル（`backend/app/interface/dto.py`）を変えたら:
 
 ```bash
-cd backend
-. .venv/bin/activate
-pytest
-ruff check . && ruff format .
+npm run api:types   # 生成し直す
+```
+
+生成物（`frontend/src/infrastructure/apiSchema.ts`）は**手で編集しない**でください。
+CI が「生成し直して差分が出ないか」を検査します。
+
+### 負荷を試したいとき
+
+GPU が無くても、本番の混み方を再現できます。
+
+```bash
+TTS_FAKE_DELAY_SEC=1.5 make dev-backend   # 1行1.5秒のGPUを模す
+make load-test                            # 10人が同時に始める
 ```
 
 ## コードの決まりごと
@@ -204,3 +218,29 @@ it('リセット後の行IDが元と衝突しない（古い音声を拾わな�
 
 「なぜこのテストがあるのか」が自明でない場合は、docstring / コメントに
 **過去に壊れた経緯**を残してください（例: `test_render.py` の尺のテスト）。
+
+### どの道具をいつ使うか
+
+| 何を確かめたいか             | 使うもの                | 置き場所                                        |
+| ---------------------------- | ----------------------- | ----------------------------------------------- |
+| 純粋な計算                   | Vitest / pytest         | `*.test.ts` / `tests/test_units.py`             |
+| **任意の入力で成り立つ性質** | fast-check / Hypothesis | `*.property.test.ts` / `tests/test_property.py` |
+| 層をまたぐ流れ（偽サーバー） | Vitest                  | `application/*.test.ts`                         |
+| **APIが契約どおりか**        | schemathesis            | `tests/test_contract.py`                        |
+| 画面から通しで動くか         | Playwright              | `e2e/`                                          |
+| 同時アクセスに耐えるか       | `scripts/load-test.py`  | —                                               |
+
+### E2E のセレクタ
+
+**`aria-label`（素の名前）で掴んでください。** ふりがなは `<ruby>` で描くので、
+見えている文字はテキスト検索で割れます（「録音」→「録音 ろくおん」）。
+
+```ts
+// ✅ 支援技術が読む名前と同じもので掴む
+page.getByRole('button', { name: '録音', exact: true })
+
+// ❌ ルビで割れて見つからない
+page.getByText('録音')
+```
+
+副次的に「テストが通る ＝ 読み上げも正しい」という関係になります。

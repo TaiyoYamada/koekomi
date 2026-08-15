@@ -129,7 +129,7 @@ TTS_BACKEND=dummy uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ## 3. 本番運用（Colab Pro+ × 3台）
 
 `colab/start_backend.ipynb` を3つ開き、`SERVER_ID` / `SERVER_COLOR` だけ変えて実行します。
-詳細は [docs/03-colab-backend.md](docs/03-colab-backend.md)。
+設計の背景は [docs/adr/0001](docs/adr/0001-three-servers-are-for-redundancy.md)。
 
 **イベント30分前に起動**してください（pip install + モデル読み込みで10分前後かかります）。
 起動が終わったら、手元のPCから通しで確認します:
@@ -166,33 +166,34 @@ flowchart TD
 やり直すのは未完了の行だけです。
 
 動画も同じ考え方で、サーバーで作れなければ自動的に iPad 側の書き出しに落ちます
-（`/health` の `canRender` で判断）。詳細は [docs/05-fallback.md](docs/05-fallback.md)。
+（`/health` の `canRender` で判断）。
 
 ---
 
-## 5. テスト・Lint・CI
-
-リポジトリ直下から、両スタックまとめて回せます。
+## 5. 品質の担保
 
 ```bash
-npm run check   # format確認 + lint + 型 + テスト（PR前にこれ1本）
-npm run fix     # 自動修正（Prettier + ESLint --fix + ruff --fix）
+make setup    # 初回。Node と Python の依存を入れる
+make check    # PR前の全確認（format / lint / 型 / テスト）
+make e2e      # 実ブラウザでの通しテスト
 ```
 
-個別に回すこともできます（`npm run lint` / `format` / `typecheck` / `test`）。
-バックエンドの venv は `scripts/py.sh` が自動で見つけるので、有効化を忘れても動きます。
+### 何で守っているか
 
-|        | 使うもの                              | 対象                              |
-| ------ | ------------------------------------- | --------------------------------- |
-| 整形   | Prettier                              | TS / TSX / JSON / YAML / Markdown |
-| 整形   | ruff format                           | Python（backend / colab）         |
-| Lint   | ESLint（＋ `eslint-config-prettier`） | TS / TSX                          |
-| Lint   | ruff                                  | Python                            |
-| テスト | Vitest（jsdom + fake-indexeddb）      | フロント                          |
-| テスト | pytest                                | バックエンド                      |
+|              | 使うもの                                              | 何を守るか                                                                     |
+| ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 整形         | Prettier / ruff format                                | 見た目の議論をレビューから消す                                                 |
+| Lint         | ESLint / ruff                                         | 書き方の誤り、危ない書き方（bandit）                                           |
+| **層の境界** | ESLint の `no-restricted-imports` / **import-linter** | `domain` が React や fetch を使わない、`ui` が `infrastructure` を直接呼ばない |
+| 型           | tsc / **mypy**                                        | 型ヒントを飾りにしない                                                         |
+| **API契約**  | **OpenAPI → TS型生成**                                | サーバーの返り値とフロントの期待を1つの定義から出す                            |
+| 単体         | Vitest / pytest                                       | 壊れ方（障害パス）を中心に                                                     |
+| **性質**     | **fast-check / Hypothesis**                           | 任意の入力で不変条件が成り立つ                                                 |
+| **契約**     | **schemathesis**                                      | スキーマから生成した入力でAPIが壊れない                                        |
+| **通し**     | **Playwright（WebKit）**                              | iPad Safari 相当で画面から最後まで                                             |
+| **負荷**     | `scripts/load-test.py`                                | 10人同時の実測値                                                               |
 
-**ESLint は層の境界も見ます。** `domain` が React や fetch を import したり、
-`ui` が `infrastructure` を直接呼んだりすると、レビューではなく lint が止めます。
+太字は、ふつうこの規模では入れないもの。**入れた理由はそれぞれ実際に見つけた不具合があるから**です（[docs/adr](docs/adr) 参照）。
 
 ### テストの方針
 
@@ -203,20 +204,30 @@ npm run fix     # 自動修正（Prettier + ESLint --fix + ruff --fix）
 - 壊れた保存データを読んでも開けること
 - 端末の分散が偏らないこと
 
-生成ジョブは**偽サーバーに差し替えて最後まで動かす結合テスト**にしています
-（`application/voiceJobs.test.ts`）。IndexedDB は fake-indexeddb を使うので、
-「音声が本当に手元へ落ちているか」まで実物で確認できます。
+生成ジョブは**偽サーバーに差し替えて最後まで動かす結合テスト**にしています。
+IndexedDB は fake-indexeddb を使うので、「音声が本当に手元へ落ちているか」まで
+実物で確認できます。
+
+### 負荷テスト（当日の見積もりに使う）
+
+GPU が無くてもリハーサルできます。実機で1行の生成時間を測ったら、その値を
+ダミーTTSに与えて同じ混み方を再現します。
+
+```bash
+# 1行1.5秒で 10人が同時に始める状況を再現
+TTS_FAKE_DELAY_SEC=1.5 make dev-backend
+make load-test
+```
 
 ### CI
 
-`.github/workflows/ci.yml` が `main` / `develop` への push と PR で動きます。
+`main` / `develop` への push と PR で、5つのジョブが走ります。
 
 1. **frontend** … format / lint / 型 / テスト / ビルド
-2. **backend** … ruff（lint・format）/ pytest
-3. **E2E** … ffmpeg と日本語フォントを入れた上で、実際にサーバーを起動し
-   `/health → /voices → /jobs → /artifacts → /render → 認証` を通す
-
-GAS の確認は `bash scripts/test-gas.sh <GAS_URL>`。
+2. **backend** … ruff / import-linter / mypy / pytest（プロパティ・契約テスト含む）
+3. **contract** … 生成した型が最新か（バックエンドを変えて更新し忘れると落ちる）
+4. **browser** … WebKit で画面から通しテスト
+5. **smoke** … ffmpeg と日本語フォントを入れ、実サーバーに `/health → /voices → /jobs → /artifacts → /render → 認証`
 
 ## 6. 子どもの声の扱い
 
@@ -226,7 +237,10 @@ GAS の確認は `bash scripts/test-gas.sh <GAS_URL>`。
 - 参照テキストは**固定スクリプト**（`frontend/src/domain/script.ts`）。
   子どもは決まった文を読むだけで、意図しない発話が混ざりにくい。
 
-詳細と同意まわりは [docs/06-child-voice-notes.md](docs/06-child-voice-notes.md)。
+同意の取り方、何を守っていて何は守れていないかは [SECURITY.md](SECURITY.md) にまとめています。
+
+イベント後は `python3 scripts/event-report.py <ログ>` で、
+待ち時間や成功率を集計できます（声もセリフも含まれません）。
 
 ---
 
