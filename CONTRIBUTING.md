@@ -1,94 +1,206 @@
 # コントリビューションガイド
 
-コエコミ（`koekomi`）への変更の進め方をまとめます。
-セットアップや構成の詳細は [README.md](./README.md) と [`docs/`](./docs) を参照してください。
+コエコミ（`koekomi`）の開発ルールをまとめます。
+セットアップや構成は [README.md](./README.md) と [`docs/`](./docs) を参照してください。
 
----
+## コミットメッセージ
 
-## コミットメッセージの書き方
-
-**`型: 日本語の説明`** の形式で書きます。型は半角英語、説明は**日本語**です。
+[Conventional Commits](https://www.conventionalcommits.org/) に準拠し、**説明は日本語**で書きます。
 
 ```
-feat: 4コマ劇場に自動再生の速度設定を追加
-fix: 同時アクセス時の無限待ちを解消（生成タイムアウト）
-docs: Colab 起動手順を更新
+<type>: <変更内容を日本語で簡潔に>
 ```
 
-- 先頭の型（`feat` など）は**一例**です。下の一覧から内容に合うものを選んでください。
-- 型のあとは `: `（コロン＋半角スペース）、続けて**何をしたか**を日本語で簡潔に書きます。
-- 1行目（タイトル）は 50 文字程度まで。詳しい背景は1行空けて本文に書きます。
+例：
 
-### 型の一覧
+```
+feat: 生成の待ち順位を劇場に表示する
+fix: フェイルオーバー後に古い音声を参照する不具合を修正
+docs: Colab Pro+ の停止手順を追記
+```
 
-| 型 | 使うとき | 例 |
-|---|---|---|
-| `feat` | 機能の追加 | `feat: 先生用の一括リセットボタンを追加` |
-| `fix` | バグ修正 | `fix: 録音が iPad で止まる問題を修正` |
-| `docs` | ドキュメントのみの変更 | `docs: フォールバック手順を追記` |
-| `style` | 動作に影響しない見た目・整形 | `style: ボタンの余白を調整` |
-| `refactor` | 挙動を変えないコード整理 | `refactor: TTS の adapter 層を整理` |
-| `test` | テストの追加・修正 | `test: 割り当てロジックのテストを追加` |
-| `chore` | 設定・依存・雑務 | `chore: 依存ライブラリを更新` |
-| `perf` | パフォーマンス改善 | `perf: 起動時にモデルを先読みして初回待ちを短縮` |
+### type 一覧
 
-迷ったら `feat`（増やした）／`fix`（直した）／`chore`（その他）のどれかで十分です。
+| type       | 用途                                           |
+| ---------- | ---------------------------------------------- |
+| `feat`     | 新機能                                         |
+| `fix`      | バグ修正                                       |
+| `docs`     | ドキュメントのみの変更                         |
+| `style`    | 動作に影響しない変更（フォーマット・空白など） |
+| `refactor` | バグ修正でも機能追加でもないコード改善         |
+| `perf`     | パフォーマンス改善                             |
+| `test`     | テストの追加・修正                             |
+| `chore`    | ビルド・補助ツール・設定など                   |
+| `ci`       | CI 関連の変更                                  |
 
----
+### 書き方のポイント
 
-## 変更の進め方
+- 件名は簡潔に（目安50文字以内）。末尾に句点（。）は付けない
+- 1コミット＝1つの意味のある変更にまとめる
+- 詳細が必要なら本文に「何を・なぜ」を書く
+- 関連 Issue は本文に `Closes #123` のように書く
 
-1. `main` から作業用ブランチを切る（例: `git switch -c fix/voice-timeout`）。
-2. 変更を加える。**既存コードのスタイル・命名・コメント量に合わせる**。
-3. 下の「コミット前チェック」を緑にする。
-4. 上の規約でコミットする。
-5. PR を作る（変更内容と確認方法を日本語で書く）。
+### コミットテンプレート（任意）
 
----
-
-## コミット前チェック
-
-変更した範囲のテスト・Lint・型チェックを通してからコミットします。
-
-### フロントエンド（`frontend/`）
+雛形を自動で表示したい場合は、リポジトリ直下で次を設定します。
 
 ```bash
-npm run test:run --workspace frontend     # ユニットテスト（Vitest）
-npm run lint --workspace frontend         # ESLint
-npm run typecheck --workspace frontend    # 型チェック（tsc）
+git config commit.template .gitmessage
 ```
 
-### バックエンド（`backend/`）
+以降 `git commit`（`-m` なし）でエディタを開くと、type 一覧つきの雛形が表示されます。
+
+## ブランチ運用
+
+`main` + `develop` の2本を軸に運用します。
+
+| ブランチ        | 役割                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| `main`          | リリース版のみ。常に「イベントで使える状態」を保つ。直接コミットしない |
+| `develop`       | 開発の統合先。作業ブランチはここから切り、ここに戻す                   |
+| `<type>/<内容>` | 作業ブランチ。`develop` から切って `develop` へ PR                     |
+
+### 流れ
+
+1. `develop` から作業ブランチを切る
+2. 作業して `develop` へ PR → マージ
+3. リリースのタイミングで `develop` → `main` へ PR → マージ
 
 ```bash
-cd backend && . .venv/bin/activate
-pip install -r requirements-dev.txt       # 初回のみ
-pytest                # API・サービス層のテスト
-ruff check .          # Lint
-ruff format --check . # フォーマット確認
+git switch develop
+git pull
+git switch -c feat/queue-position   # develop から作業ブランチを作成
 ```
 
-> バックエンドのテストには FastAPI などの依存が必要です。Colab 本番では AI 用の重い依存（torch / qwen-tts）も入りますが、ローカルのテストは `requirements-dev.txt` だけで動きます。
+### フロー図
 
-push / PR では GitHub Actions（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）が frontend・backend 両方を自動実行します。**CI は緑にしてからマージ**します。
-
-GAS の動作確認は次で行えます。
-
-```bash
-bash scripts/test-gas.sh <GAS_URL>   # register → list → assign → heartbeat → list
+```mermaid
+gitGraph
+   commit id: "初期"
+   branch develop
+   checkout develop
+   commit id: "開発の起点"
+   branch feat/queue-position
+   checkout feat/queue-position
+   commit id: "待ち順位を表示"
+   checkout develop
+   merge feat/queue-position
+   branch fix/failover-audio
+   checkout fix/failover-audio
+   commit id: "フェイルオーバーを修正"
+   checkout develop
+   merge fix/failover-audio
+   checkout main
+   merge develop tag: "event"
 ```
+
+- 作業ブランチは `develop` から切り、`develop` へ戻す（PR）
+- `main` へは、イベント前に `develop` をまとめてマージする
+
+### 作業ブランチの命名
+
+コミットの type に合わせると分かりやすいです。
+
+```
+<type>/<簡潔な内容>
+```
+
+例：
+
+```
+feat/queue-position
+fix/failover-audio
+```
+
+## プルリクエスト
+
+- 通常は `develop` に向けて作成します（イベント前のみ `develop` → `main`）
+- テンプレート（概要・変更内容・確認）を埋めます
+- CI（lint / format / 型 / テスト / E2E）が通ることを確認します
+- 関連 Issue を `Closes #123` でリンクします
+
+## Issue
+
+タスク・バグ・要望は Issue で管理します。「New issue」から用途に合うテンプレート（タスク / バグ報告 / 機能要望）を選んでください。
 
 ---
 
-## コーディングの方針
+## 開発コマンド
 
-- **UI の表示は漢字＋ふりがな**（小学生向け）。`Furigana` コンポーネントを使います。
+リポジトリ直下から、両スタックをまとめて回せます。
+
+```bash
+npm run check        # lint + format確認 + 型 + テスト（PR前にこれ）
+npm run fix          # 自動修正（format + lint --fix）を両スタックに適用
+
+npm run lint         # frontend + backend の lint
+npm run format       # frontend + backend の整形
+npm run format:check  # 整形されているかの確認（CI と同じ）
+npm run typecheck    # frontend の型チェック
+npm run test         # frontend + backend のテスト
+```
+
+バックエンドだけを触るときは:
+
+```bash
+cd backend
+. .venv/bin/activate
+pytest
+ruff check . && ruff format .
+```
+
+## コードの決まりごと
+
+### 層と依存の向き
+
+バックエンドもフロントエンドも **domain / application / infrastructure / interface(ui)** の4層です。
+**依存の向きは常に内向き**（`interface·ui → application → domain`）。
+
+| 層                 | 置くもの                      | 禁止                                       |
+| ------------------ | ----------------------------- | ------------------------------------------ |
+| `domain`           | 型と純粋な計算                | 何も import しない（標準ライブラリのみ）   |
+| `application`      | ユースケース                  | 具体的な実装を知らない。ポート越しに触る   |
+| `infrastructure`   | HTTP・DB・ffmpeg・ブラウザAPI | 業務判断を持たない                         |
+| `interface` / `ui` | 入出力の変換と表示            | `fetch` を直接呼ばない。業務判断を持たない |
+
+- 具体実装を選ぶのは `backend/app/interface/container.py` **だけ**です。
+- フロントの UI から `fetch` を直接呼ばないこと。ユースケースは `application/` に置きます。
+
+### 守ってほしい4つの不変条件
+
+崩すと3台構成が冗長化として機能しなくなります。変更時は特に注意してください。
+
+1. **サーバーはステートレス。** 成果物はTTL付きの一時ファイルだけ。
+2. **クライアントが作品の唯一の所有者。** 生成音声は完成した瞬間に IndexedDB へ落とす。
+3. **作業単位は1行。** 重い処理を `asyncio.wait_for` で中断しようとしないこと
+   （別スレッドの処理は外から止められず、「タイムアウトしたのにGPUでは走り続けて二重実行」になります）。
+4. **ドメインに絶対URLを持ち込まない。** 音声は `AudioRef`（IndexedDBのキー）で参照します。
+   URLはトランスポートのアドレスであり、サーバーが変わると無効になるためです。
+
+### UI
+
+- 表示は**漢字＋ふりがな**（小学生向け）。`Ruby` コンポーネントを使います。
+- エラーの詳細（HTTPコード等）は画面に出さず、`console.error` に残します。
 - 秘密情報（トークン・URL）は**コードに直書きしない**。環境変数（Colab はシークレット）から読みます。
-- バックエンドは**サービス層／adapter 層**に分かれています。TTS の差し替えは `backend/app/adapters/` で行います。
-- 1つの Colab では `asyncio.Lock`（`backend/app/locks.py`）で**音声生成を1件ずつ**処理します。重い処理は `asyncio.to_thread` に逃がし、タイムアウトを付けてイベントループを塞がない／無限待ちにしないこと。
 
----
+## テストの書き方
 
-## 質問・相談
+**正常系だけでなく、壊れ方をテストしてください。** このアプリの価値は
+「イベント中に何かが落ちても子どもの体験が止まらないこと」なので、
+そこが動く保証こそがテストの目的です。
 
-仕様で迷ったら、実装の前に Issue か PR の下書きで相談してください。小さく出して壁打ちしながら進める方針です。
+書いてほしいもの:
+
+- 障害パス（サーバーが落ちる / 声の期限切れ / 部分失敗 / 通信断）
+- 壊れた保存データを読んでも開けること
+- 境界（0件・上限・空文字・不正な入力）
+
+テスト名は**日本語で「何が保証されるか」**を書きます。
+
+```ts
+it('16行中1行失敗しても、残りは使える', () => { … })
+it('リセット後の行IDが元と衝突しない（古い音声を拾わない）', () => { … })
+```
+
+「なぜこのテストがあるのか」が自明でない場合は、docstring / コメントに
+**過去に壊れた経緯**を残してください（例: `test_render.py` の尺のテスト）。

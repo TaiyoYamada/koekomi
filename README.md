@@ -1,17 +1,37 @@
 # コエコミ — 声でつくる4コマ劇場
 
 小学生向けイベント用 Web アプリ。
-iPad でアプリを開き、**4コマ漫画を作り → 決まった文を読んで自分の声を録音 → AI音声を生成 → 4コマ劇場として再生**するまでを行えます。
-画面は**左サイドバーでいつでも自由に行き来**でき（順番の強制なし）、各コマには**写真1枚＋セリフを複数**置けます（追加・削除・編集・▲▼で並べ替え、コマ自体の並べ替えも可）。UI はすべて**漢字＋ふりがな**で表示します。
+iPad でアプリを開き、**決まった文を読んで自分の声を録音 → 4コマ漫画を作る → AI音声を生成 → 4コマ劇場として再生・動画で保存**するまでを行えます。
+画面は**左サイドバーでいつでも自由に行き来**でき（順番の強制なし）、各コマには**写真1枚＋セリフを複数**置けます。UI はすべて**漢字＋ふりがな**で表示します。
+
+規模: **同時 最大10人 / サーバー3台（Colab Pro+）**。
+
+---
+
+## アーキテクチャ
 
 ```mermaid
 flowchart TD
-    iPad["子どものiPad<br/>(固定URLを開くだけ)"] -->|React フロント| Front["React + TypeScript"]
-    Front -->|"① 起動時に使えるColab一覧を取得 (list)"| GAS["GAS + Google Sheets<br/>(サーバーレジストリ)"]
-    Front -->|"② 空きColabを自動割り当て<br/>localStorage に保存"| GAS
-    Colab["Colab #1..#10<br/>(FastAPI + Cloudflare Tunnel)"] -->|register / heartbeat| GAS
-    Front -->|"AI音声生成<br/>(割り当てられた apiUrl へ)"| Colab
+    iPad["子どものiPad<br/>(固定URLを開くだけ)"] -->|"① 今日の3つのURLを取得"| GAS["GAS + Google Sheets<br/>(サーバー名簿)"]
+    iPad -->|"② 端末IDのハッシュで1台選び<br/>/health が通るまで順に試す"| Colab
+    Colab["Colab #1..#3<br/>(FastAPI + Cloudflare Tunnel)"] -->|register / heartbeat| GAS
+    iPad -->|"POST /voices（声を1回だけ預ける）<br/>POST /jobs（1行=1作業単位）<br/>POST /render（動画）"| Colab
+    iPad -->|"できた音声を即ダウンロード"| IDB[("IndexedDB<br/>作品の実体はここ")]
 ```
+
+### 設計の柱（4つの不変条件）
+
+この4つが崩れると、3台構成が冗長化として機能しなくなります。
+
+1. **サーバーはステートレス。** 成果物はTTL付きの一時ファイルだけ。真実はクライアントにある。
+2. **クライアントが作品の唯一の所有者。** 生成音声は完成した瞬間に IndexedDB へ落とす。
+3. **作業単位は1行。** だから強制キャンセルが要らない（Pythonのスレッドは外から止められない）。
+4. **UI層は絶対URLを持たない。** `artifactId` を持ち、URLへの解決は application 層だけが行う。
+
+> **3台あるのは速さのためではなく、1台落ちても誰も気づかないためです。**
+> 10人 × 16行 × T秒 ÷ 3台 という計算をすると、GPU は 95% 以上遊びます。
+> だから負荷分散はしていません（＝共有状態が要らない）。散らすのは端末IDのハッシュ、
+> 冗長化は `/health` のリトライ。どちらも通信ゼロで済みます。
 
 ---
 
@@ -19,199 +39,207 @@ flowchart TD
 
 ```
 koekomi/
-├── frontend/        React + TypeScript（Vite）。子ども用UI＋先生用 /admin
-│   ├── src/
-│   │   ├── steps/       各画面（編集 / 録音 / AI声 / 劇場）。サイドバーで自由移動
-│   │   ├── components/  Sidebar / Furigana(ルビ) / PanelPicker / ServerBadge ほか
-│   │   ├── lib/         registry(GAS) / api(FastAPI) / recorder / speech / storage / comic
-│   │   ├── admin/       先生・TA用 管理画面（/admin）
-│   │   ├── Privacy.tsx  プライバシーポリシー（/privacy）
-│   │   └── ...
-│   ├── public/panels/   20枚のダミーパネル画像 + manifest.json（差し替え可）
-│   └── scripts/         パネル画像ジェネレーター
-├── backend/         FastAPI。adapter層でQwenTTSに差し替え可
+├── frontend/          React + TypeScript（Vite）。子ども用UI＋先生用 /admin
+│   └── src/
+│       ├── domain/         純粋TS。React も fetch も知らない
+│       │   ├── work.ts         作品モデル（正規化・AudioRef）
+│       │   └── timeline.ts     ★再生規則の唯一の正（再生・書き出し・レンダで共有）
+│       ├── application/    ユースケース。React の外
+│       │   ├── workStore.ts    作品と画面の状態
+│       │   ├── connection.ts   ハッシュ分散＋フェイルオーバー
+│       │   ├── voiceJobs.ts    声のエンロールと生成ジョブ
+│       │   ├── videoExport.ts  サーバーレンダ／クライアント書き出しの選択
+│       │   └── persistence.ts  ストアを購読して保存（ストアはこれを知らない）
+│       ├── infrastructure/ HTTP・IndexedDB・MediaRecorder など外の世界
+│       └── ui/             コンポーネント。infrastructure を import しない
+├── backend/           FastAPI
 │   └── app/
-│       ├── routes/      /health /generate-comic-voices /files /upload-video /cleanup
-│       ├── services/    audio(ffmpeg) / tts（サービス層）
-│       └── adapters/    dummy / qwen（adapter層）
-├── colab/           Colabでバックエンドを起動するコード（runner + notebook）
-├── gas/             Google Apps Script（サーバーレジストリ）
-└── docs/            セットアップ・運用ドキュメント
+│       ├── domain/         純粋。models.py / timeline.py
+│       ├── application/    ports.py / jobs.py（ワーカープール）/ voices.py / render.py
+│       ├── infrastructure/ tts_qwen / tts_dummy / artifact_store / video_ffmpeg
+│       └── interface/      FastAPI。container.py が唯一の組み立て場所
+├── colab/             Colabでバックエンドを起動するコード
+├── gas/               Google Apps Script（サーバー名簿）
+└── scripts/           smoke-test.sh（当日朝の通し確認）ほか
 ```
 
-詳しい手順は [`docs/`](./docs) にあります。
-
-| ドキュメント | 内容 |
-|---|---|
-| [docs/01-development.md](docs/01-development.md) | 開発環境の起動方法 |
-| [docs/03-colab-backend.md](docs/03-colab-backend.md) | Colab でバックエンドを起動する方法 |
-| [docs/04-gas-sheets.md](docs/04-gas-sheets.md) | GAS + Google Sheets の準備方法 |
-| [docs/05-fallback.md](docs/05-fallback.md) | Colab が落ちた時のフォールバック手順 |
-| [docs/06-child-voice-notes.md](docs/06-child-voice-notes.md) | 子どもの声を扱う上での注意事項 |
+依存の向きは常に内向き: `interface/ui → application → domain`。
+`domain` は何も import しません。
 
 ---
 
 ## 1. 起動方法
 
-### フロントエンド（React）
+### フロントエンド
 
 ```bash
-npm install            # ルートで一度だけ（workspace）
-cp frontend/.env.example frontend/.env   # VITE_GAS_URL を設定
+npm install
+cp frontend/.env.example frontend/.env   # VITE_GAS_URL / VITE_EVENT_TOKEN を設定
 npm run dev            # http://localhost:5173
 ```
 
-### バックエンド（FastAPI / ローカル開発）
+### バックエンド（ローカル開発）
 
 ```bash
 cd backend
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-# http://localhost:8000/health
+TTS_BACKEND=dummy uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-最初は **ダミー実装** で動きます（AI音声＝コマごとに違うトーン音）。
-`React → FastAPI → 音声ファイル返却 → 4コマ劇場再生` の流れがそのまま確認できます。
-
-### パネル画像の差し替え
-
-ダミー20枚は `frontend/public/panels/` にあります。
-本番では実画像を置き、`manifest.json`（`{id, src, label}` の配列）を更新するだけで差し替わります。
-再生成は `npm run panels`。
+`TTS_BACKEND=dummy` なら GPU 無しで全フローが動きます（AI音声＝トーン音）。
+録音 → 生成 → 劇場再生 → 動画書き出しまで、ノートPC1台で最後まで確認できます。
 
 ---
 
-## 2. 開発中に iPad から確認する方法
+## 2. API
 
-- iPad と PC を同じネットワークにつなぎ、`http://<PCのIP>:5173` を開きます（Vite は host を開放済み）。
-- ブラウザ録音（マイク）は **HTTPS が必須**です。録音まで確認するときは、ホスティング（固定URL）のプレビュー環境か、`cloudflared tunnel --url http://localhost:5173` で一時公開して確認します。
-- 本番では **フロントは固定URLでホスティング**し、**バックエンドだけ Colab + Cloudflare Tunnel** で公開します。
+すべて `X-Event-Token` ヘッダーが必要です（`/health` を除く）。
+ヘッダーを付けられない経路（`<audio src>` / QRコード）のために `?t=` も受け付けます。
+
+| メソッド | パス                | 用途                                               |
+| -------- | ------------------- | -------------------------------------------------- |
+| GET      | `/health`           | 生存確認。`status` が `warming` の間は割り当てない |
+| POST     | `/voices`           | 参照音声を**1回だけ**預けて `voiceId` をもらう     |
+| DELETE   | `/voices/{id}`      | 声を忘れさせる（参照音声のファイルごと削除）       |
+| POST     | `/jobs`             | 生成ジョブを積む。202 で即返る                     |
+| GET      | `/jobs/{id}`        | 進み具合。1行できるごとに `results` が増える       |
+| POST     | `/jobs/{id}/cancel` | 協調キャンセル（走っている1行は終わる）            |
+| GET      | `/artifacts/{id}`   | 生成物の取得。uuid + TTL                           |
+| POST     | `/artifacts`        | クライアント書き出しの動画を預ける                 |
+| POST     | `/render`           | タイムラインから動画を作る                         |
+| GET      | `/ops`              | 運用者向けの状態                                   |
+| POST     | `/cleanup`          | 声も生成物もまとめて削除                           |
+
+### 環境変数（バックエンド）
+
+| 変数               | 既定                    | 意味                                                    |
+| ------------------ | ----------------------- | ------------------------------------------------------- |
+| `EVENT_TOKEN`      | （空）                  | **本番では必須。** 空だと無認証                         |
+| `CORS_ORIGINS`     | `http://localhost:5173` | 本番はフロントのオリジン。`*` にしない                  |
+| `FRONTEND_ORIGIN`  | （空）                  | 写真の取得元。未設定だとサーバーで動画を作れない        |
+| `WORKERS`          | `1`                     | GPU 1枚なら 1                                           |
+| `TTS_SERIALIZE`    | `1`                     | GPU 推論を直列化。0 にすると `WORKERS` が効く（要実測） |
+| `ARTIFACT_TTL_SEC` | `3600`                  | 生成音声の保持時間                                      |
+| `VIDEO_TTL_SEC`    | `1800`                  | 動画の保持時間                                          |
+| `VOICE_TTL_SEC`    | `3600`                  | 声（参照音声）の保持時間                                |
 
 ---
 
-## 3. iPad で動作確認する方法
+## 3. 本番運用（Colab Pro+ × 3台）
 
-1. iPad と PC を同じネットワークにするか、ホスティングの HTTPS URL を使う。
-2. iPad の Safari でフロントの URL を開く（**QRは必須ではありません**。固定URLを開くだけ）。
-3. 予備として共通QRを配ってもOK（同じURLを指すだけ）。
-4. 画面上部に **「あなたは ○サーバー です」** と接続先の色が表示されます。
-5. マイク許可のダイアログが出たら「許可」。
+`colab/start_backend.ipynb` を3つ開き、`SERVER_ID` / `SERVER_COLOR` だけ変えて実行します。
+詳細は [docs/03-colab-backend.md](docs/03-colab-backend.md)。
 
----
+**イベント30分前に起動**してください（pip install + モデル読み込みで10分前後かかります）。
+起動が終わったら、手元のPCから通しで確認します:
 
-## 4. Colab を 5〜10台起動する本番運用
-
-1台のColab = 1サーバー。台ごとに `SERVER_ID` / `SERVER_COLOR` を変えて起動します。
-色は10色（赤・青・緑・黄・紫・オレンジ・ピンク・水色・茶色・黒）。**台数は固定ではなく、5台でも10台でも動きます**。
-
-```python
-# Colab の最後のセル（詳細は colab/start_backend.ipynb）
-import os
-os.environ['GAS_URL']      = userdata.get('GAS_URL')   # 直書きしない
-os.environ['SERVER_ID']    = 'colab-1'
-os.environ['SERVER_COLOR'] = 'red'
-os.environ['SERVER_LABEL'] = '赤サーバー'
-os.environ['CAPACITY']     = '2'        # 1台 1〜2人
-%run colab/colab_runner.py
+```bash
+bash scripts/smoke-test.sh https://xxxx.trycloudflare.com <EVENT_TOKEN>
 ```
 
-`colab_runner.py` が **依存インストール → FastAPI起動 → トンネル公開 → GAS登録 → heartbeat送信** まで自動で行います。
+`/health` → `/voices` → `/jobs` → `/artifacts` → `/render` を、子どもがやるのと
+同じ順序で通します。**全部 PASS してから会場を開けてください。**
+1行あたりの生成時間も出るので、待ち時間の見積もりにも使えます。
 
-**公開は Cloudflare Quick Tunnel を使います**。無料・アカウント/鍵不要で**複数台を同時公開**でき、警告ページも出ません。`cloudflared` を自動取得して `*.trycloudflare.com` を発行 → GAS に登録します。GASがURLを仲介するので、公開URLが変わってもフロントは無修正です。
+**⚠️ イベント後は必ずランタイムを停止。** Pro+ のバックグラウンド実行はタブを閉じても
+動き続け、コンピューティングユニットを消費します。
 
-手順の全体は [docs/03-colab-backend.md](docs/03-colab-backend.md)。
-
----
-
-## 5. GAS への自動登録の流れ
-
-GAS + Google Sheets を**簡易サーバーレジストリ**として使います（外部DBは使いません）。
-Sheets の列: `serverId | color | label | apiUrl | enabled | capacity | assignedCount | lastSeen`
-
-1. **register**: Colab 起動時、`colab_runner.py` がトンネルの公開URL（Cloudflare）を GAS に登録（`apiUrl` 保存・`assignedCount=0`・`lastSeen` 更新）。
-2. **heartbeat**: 一定間隔（既定30秒）で `lastSeen` を更新。生きているサーバーだけが「新しい」状態になる。
-3. **list**: React 起動時に `?action=list` で一覧取得。
-4. **assign**: 割り当て確定時に `assignedCount` を +1。
-
-準備手順は [docs/04-gas-sheets.md](docs/04-gas-sheets.md)。
+先生用の `/admin` では、**全台の状態（応答・AI音声の可否・待ち行列）**を1画面で見られます。
 
 ---
 
-## 6. localStorage による割り当て保存の仕組み
-
-端末（iPad）ごとの接続先を localStorage に保存します（キー: `vct.assignment`）。
-
-- **起動時**: 保存済み接続先があれば、その `apiUrl/health` を確認 → 通れば**それを優先**して使う。
-- **無い／死んでいる場合**: GAS から一覧を取り直し、`enabled=true` かつ `assignedCount < capacity` かつ `lastSeen` が新しいサーバーの中から、**空きが多い順**に1台選び、`/health` が通るものを割り当てて保存。
-- **接続失敗時**: 直前のサーバーを除外して**別のColabへ再割り当て**。
-- 保存内容: `{ serverId, color, label, apiUrl, assignedAt }`。
-
-選定ロジックは `frontend/src/lib/registry.ts`、保存は `frontend/src/lib/storage.ts`。
-
----
-
-## 7. フォールバックモードの使い方
-
-すべてのColabが使えない、AI音声生成が失敗する、といった場合に備えて2つの保険があります。
-切り替えは先生用 **管理画面（右上の小さな⚙ → `/admin`）** から、または接続失敗時のバナーから行えます。
-
-1. **自分で録音モード（`self-record`）**
-   AI音声を使わず、各コマのセリフを**子ども自身の声で録音**して作品を完成させます。
-2. **ブラウザ読み上げモード（`browser-tts`）**
-   `speechSynthesis` を使い、**端末標準の読み上げ音声**でセリフを再生します。録音もネットも不要。
-
-どちらのモードでも、最後の「4コマげきじょう」プレイヤーで1コマずつ順番に再生できます。
+## 4. フォールバック
 
 ```mermaid
 flowchart TD
-    A["AIで声を作る（通常）"] -->|失敗| B["別Colabへ再割り当て"]
+    A["AIで声を作る（通常）"] -->|失敗| B["別のColabへ自動で移る"]
     B -->|それでもダメ| C["自分で録音モード"]
     C -->|録音も不可| D["ブラウザ読み上げモード"]
-    A --> P["4コマげきじょうプレイヤー<br/>(全モード共通・1コマずつ再生)"]
+    A --> P["4コマげきじょう<br/>(全モード共通)"]
     B --> P
     C --> P
     D --> P
 ```
 
-詳細は [docs/05-fallback.md](docs/05-fallback.md)。
+サーバーが変わっても、**すでにできている音声は手元（IndexedDB）にあるので失われません**。
+やり直すのは未完了の行だけです。
+
+動画も同じ考え方で、サーバーで作れなければ自動的に iPad 側の書き出しに落ちます
+（`/health` の `canRender` で判断）。詳細は [docs/05-fallback.md](docs/05-fallback.md)。
 
 ---
 
-## テスト・Lint・CI
+## 5. テスト・Lint・CI
+
+リポジトリ直下から、両スタックまとめて回せます。
 
 ```bash
-# フロントエンド（Vitest / ESLint / tsc）
-npm run test:run --workspace frontend     # ユニットテスト
-npm run lint --workspace frontend         # ESLint
-npm run typecheck --workspace frontend    # 型チェック
-
-# バックエンド（pytest / ruff）
-cd backend && . .venv/bin/activate
-pip install -r requirements-dev.txt
-pytest                # API・サービス層のテスト
-ruff check .          # lint
-ruff format --check . # フォーマット確認
+npm run check   # format確認 + lint + 型 + テスト（PR前にこれ1本）
+npm run fix     # 自動修正（Prettier + ESLint --fix + ruff --fix）
 ```
 
-- フロント: `colors` / `rankServers`（割り当てロジック）/ `storage` / `config` / `ServerBadge` をテスト。
-- バック: `/health` `/generate-comic-voices`(4ファイル生成・lock解放) `/files`(配信・パストラバーサル防御) `/cleanup`、ダミーTTSのwav生成をテスト。
-- **GitHub Actions**（`.github/workflows/ci.yml`）が push / PR で frontend・backend 両ジョブを自動実行します。
-- GAS の動作確認は `bash scripts/test-gas.sh <GAS_URL>`（register→list→assign→heartbeat→list）。
+個別に回すこともできます（`npm run lint` / `format` / `typecheck` / `test`）。
+バックエンドの venv は `scripts/py.sh` が自動で見つけるので、有効化を忘れても動きます。
+
+|        | 使うもの                              | 対象                              |
+| ------ | ------------------------------------- | --------------------------------- |
+| 整形   | Prettier                              | TS / TSX / JSON / YAML / Markdown |
+| 整形   | ruff format                           | Python（backend / colab）         |
+| Lint   | ESLint（＋ `eslint-config-prettier`） | TS / TSX                          |
+| Lint   | ruff                                  | Python                            |
+| テスト | Vitest（jsdom + fake-indexeddb）      | フロント                          |
+| テスト | pytest                                | バックエンド                      |
+
+**ESLint は層の境界も見ます。** `domain` が React や fetch を import したり、
+`ui` が `infrastructure` を直接呼んだりすると、レビューではなく lint が止めます。
+
+### テストの方針
+
+正常系だけでなく、**このアプリの存在意義である障害パス**を踏みます。
+
+- 声の期限切れ・部分失敗（16行中1行だけ失敗）・途中キャンセル・通信断
+- サーバーが変わったときに、できていた音声が失われないこと
+- 壊れた保存データを読んでも開けること
+- 端末の分散が偏らないこと
+
+生成ジョブは**偽サーバーに差し替えて最後まで動かす結合テスト**にしています
+（`application/voiceJobs.test.ts`）。IndexedDB は fake-indexeddb を使うので、
+「音声が本当に手元へ落ちているか」まで実物で確認できます。
+
+### CI
+
+`.github/workflows/ci.yml` が `main` / `develop` への push と PR で動きます。
+
+1. **frontend** … format / lint / 型 / テスト / ビルド
+2. **backend** … ruff（lint・format）/ pytest
+3. **E2E** … ffmpeg と日本語フォントを入れた上で、実際にサーバーを起動し
+   `/health → /voices → /jobs → /artifacts → /render → 認証` を通す
+
+GAS の確認は `bash scripts/test-gas.sh <GAS_URL>`。
+
+## 6. 子どもの声の扱い
+
+- 参照音声は `VOICE_TTL_SEC` で**ファイルごと消える**。`DELETE /voices/{id}` で即時削除も可能。
+- 生成音声・動画も uuid 名 + TTL。掃除スレッドが確実に消す。
+- 声クローンは **Colab 内で完結**。第三者のクラウドAPIに送らない。
+- 参照テキストは**固定スクリプト**（`frontend/src/domain/script.ts`）。
+  子どもは決まった文を読むだけで、意図しない発話が混ざりにくい。
+
+詳細と同意まわりは [docs/06-child-voice-notes.md](docs/06-child-voice-notes.md)。
+
+---
 
 ## 技術構成
 
-| 項目 | 採用 |
-|---|---|
-| フロントエンド | React + TypeScript（Vite）／ Vercel ホスティング |
-| バックエンド | FastAPI |
-| AI実行環境 | Google Colab |
-| 音声生成（TTS） | Qwen3-TTS（既定）／ dummy にも切替可 |
-| 外部公開（トンネル） | **Cloudflare Quick Tunnel**（無料・複数台同時・鍵不要） |
-| Colabサーバー管理 | GAS + Google Sheets |
-| 端末ごとの接続先保存 | localStorage |
-| 外部DB | 使わない |
-
-- 音声生成: 既定は **Qwen3-TTS**（`adapters/qwen_tts.py`）。動作確認用に `TTS_BACKEND=dummy`（トーン音）へ即切替可。サービス層／adapter層に分離済み。
-- 声クローンの参照テキストは**固定スクリプト**（`frontend/src/lib/script.ts` の `REFERENCE_SCRIPT`）。子どもは録音画面に出る決まった文を読むだけで、テキスト入力は不要です。
-- 1つのColabでは `asyncio.Lock`（`backend/app/locks.py`）により**音声生成を1件ずつ順番に処理**します。
+| 項目           | 採用                                                    |
+| -------------- | ------------------------------------------------------- |
+| フロントエンド | React + TypeScript（Vite）／ Vercel                     |
+| バックエンド   | FastAPI（層構造 + ポート＆アダプタ）                    |
+| AI実行環境     | Google Colab Pro+ × 3                                   |
+| 音声生成       | Qwen3-TTS（既定）／ dummy に切替可                      |
+| 動画生成       | サーバー: Pillow + ffmpeg ／ 保険: MediaRecorder        |
+| 外部公開       | Cloudflare Quick Tunnel                                 |
+| サーバー名簿   | GAS + Google Sheets（register / heartbeat / list のみ） |
+| 作品の保管     | クライアントの IndexedDB                                |
+| 外部DB         | 使わない                                                |
