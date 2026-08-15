@@ -6,7 +6,7 @@ requests==2.32.3        # colab_runner が GAS への登録・heartbeat に使�
 
 # 動画のサーバー側レンダリング（字幕の焼き込み）。
 # 軽いのでここに入れる。日本語フォントは OS 側に必要（Colab は fonts-noto-cjk）。
-pillow==11.0.0
+pillow==12.3.0
 
 # ===== AI バックエンド（Qwen3-TTS）=====
 # 重い依存は backend/requirements-ai.txt に分離している。
