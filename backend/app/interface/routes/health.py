@@ -14,11 +14,12 @@ from fastapi import APIRouter, Depends
 
 from ..container import VERSION, Container
 from ..deps import get_container
+from ..dto import HealthResponse, RootResponse
 
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 async def health(c: Container = Depends(get_container)) -> dict:
     warm = c.warmup
     return {
@@ -41,6 +42,6 @@ async def health(c: Container = Depends(get_container)) -> dict:
     }
 
 
-@router.get("/")
+@router.get("/", response_model=RootResponse)
 async def root() -> dict:
     return {"app": "koekomi", "see": "/health"}

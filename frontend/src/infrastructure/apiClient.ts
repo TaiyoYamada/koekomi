@@ -5,31 +5,23 @@
 // 3分間の同期リクエストは実質コイントスだった。
 
 import { getEventToken } from './config'
+import type { components } from './apiSchema'
 
-export interface HealthInfo {
-  status: 'ok' | 'warming'
-  serverId: string
-  color: string
-  label: string
-  ttsEffective: string
-  canRender: boolean
-  queueDepth: number
-  activeJobs: number
-  version?: string
-  ttsFallback?: string | null
-  warmupError?: string | null
-}
+// ---- サーバーとの契約 ---------------------------------------------------
+//
+// **手で書かない。** これらは backend の Pydantic モデルから
+// `bash scripts/gen-api-types.sh` で生成した `apiSchema.ts` の別名。
+// バックエンドの返り値を変えてフロントを直し忘れると、型エラーで止まる。
+// CI は「生成物が最新か」も検査する。
 
-export interface JobStatus {
-  jobId: string
-  state: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
-  total: number
-  finished: number
-  /** 0 なら「いま作っているよ」。子どもに見せる待ち順位。 */
-  queuePosition: number
-  error: string | null
-  results: { index: number; artifactId: string | null; error: string | null }[]
-}
+type Schemas = components['schemas']
+
+export type HealthInfo = Schemas['HealthResponse']
+export type JobStatus = Schemas['JobResponse']
+export type VoiceInfo = Schemas['VoiceResponse']
+export type ArtifactInfo = Schemas['ArtifactResponse']
+export type OpsInfo = Schemas['OpsResponse']
+export type LineResult = Schemas['LineResultDTO']
 
 export class ApiError extends Error {
   constructor(
@@ -121,7 +113,7 @@ export async function enrollVoice(
   apiUrl: string,
   audio: Blob,
   referenceText: string,
-): Promise<{ voiceId: string; expiresSec: number }> {
+): Promise<VoiceInfo> {
   const fd = new FormData()
   fd.append('audio', audio, guessFilename(audio))
   fd.append('reference_text', referenceText)
@@ -175,20 +167,15 @@ export async function fetchArtifact(
   return await res.blob()
 }
 
-export interface RenderSegment {
-  startMs: number
-  durMs: number
-  panelPath: string | null
-  subtitle: string
-  artifactId: string | null
-}
+/** サーバーに送るタイムラインの1区間（これも生成された型から）。 */
+export type RenderSegment = Schemas['SegmentDTO']
 
 /** タイムラインを送って動画を作ってもらう。 */
 export async function renderVideo(
   apiUrl: string,
   segments: RenderSegment[],
   signal?: AbortSignal,
-): Promise<{ artifactId: string; expiresSec: number }> {
+): Promise<ArtifactInfo> {
   return request(apiUrl, '/render', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -203,7 +190,7 @@ export async function uploadVideo(
   apiUrl: string,
   blob: Blob,
   ext: 'mp4' | 'webm',
-): Promise<{ artifactId: string; expiresSec: number }> {
+): Promise<ArtifactInfo> {
   const fd = new FormData()
   fd.append('video', blob, `koekomi.${ext}`)
   return request(apiUrl, '/artifacts', { method: 'POST', body: fd, timeoutMs: 120_000 })

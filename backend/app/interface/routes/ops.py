@@ -13,13 +13,14 @@ from fastapi import APIRouter, Depends
 
 from ..container import VERSION, Container
 from ..deps import get_container
+from ..dto import CleanupResponse, OpsResponse, errors
 from ..security import require_token
 
 log = logging.getLogger("koekomi.routes.ops")
 router = APIRouter(dependencies=[Depends(require_token)])
 
 
-@router.get("/ops")
+@router.get("/ops", response_model=OpsResponse, responses=errors(401))
 async def ops(c: Container = Depends(get_container)) -> dict:
     return {
         "version": VERSION,
@@ -52,7 +53,7 @@ async def ops(c: Container = Depends(get_container)) -> dict:
     }
 
 
-@router.post("/cleanup")
+@router.post("/cleanup", response_model=CleanupResponse, responses=errors(401))
 async def cleanup(c: Container = Depends(get_container)) -> dict:
     """イベント後の後片付け。声も生成物もまとめて消す。"""
     voices = c.voices.clear()

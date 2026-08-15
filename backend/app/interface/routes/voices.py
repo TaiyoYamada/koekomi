@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 
 from ..container import Container
 from ..deps import get_container
+from ..dto import RemovedResponse, VoiceResponse, errors
 from ..security import require_token
 
 log = logging.getLogger("koekomi.routes.voices")
@@ -22,7 +23,12 @@ router = APIRouter(dependencies=[Depends(require_token)])
 MAX_REFERENCE_BYTES = 20 * 1024 * 1024
 
 
-@router.post("/voices", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/voices",
+    status_code=status.HTTP_201_CREATED,
+    response_model=VoiceResponse,
+    responses=errors(400, 401, 413),
+)
 async def enroll_voice(
     c: Container = Depends(get_container),
     audio: UploadFile = File(...),
@@ -44,7 +50,7 @@ async def enroll_voice(
     return {"voiceId": voice_id, "expiresSec": c.voices.ttl_sec}
 
 
-@router.delete("/voices/{voice_id}")
+@router.delete("/voices/{voice_id}", response_model=RemovedResponse, responses=errors(401))
 async def forget_voice(voice_id: str, c: Container = Depends(get_container)) -> dict:
     """明示的に忘れさせる（次の子に交代するとき）。参照音声のファイルも消える。"""
     return {"removed": c.voices.forget(voice_id)}

@@ -22,6 +22,7 @@ from ...application.voices import VoiceNotFound
 from ...domain.models import JobSnapshot
 from ..container import Container
 from ..deps import get_container
+from ..dto import CancelResponse, JobResponse, errors
 from ..security import require_token
 
 log = logging.getLogger("koekomi.routes.jobs")
@@ -46,7 +47,12 @@ def _to_dto(snap: JobSnapshot) -> dict:
     }
 
 
-@router.post("/jobs", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/jobs",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=JobResponse,
+    responses=errors(400, 401, 409),
+)
 async def create_job(req: CreateJobRequest, c: Container = Depends(get_container)) -> dict:
     try:
         snap = c.jobs.submit(req.voiceId, req.lines)
@@ -60,7 +66,7 @@ async def create_job(req: CreateJobRequest, c: Container = Depends(get_container
     return _to_dto(snap)
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=JobResponse, responses=errors(401, 404))
 async def get_job(job_id: str, response: Response, c: Container = Depends(get_container)) -> dict:
     snap = c.jobs.snapshot(job_id)
     if snap is None:
@@ -70,7 +76,7 @@ async def get_job(job_id: str, response: Response, c: Container = Depends(get_co
     return _to_dto(snap)
 
 
-@router.post("/jobs/{job_id}/cancel")
+@router.post("/jobs/{job_id}/cancel", response_model=CancelResponse, responses=errors(401))
 async def cancel_job(job_id: str, c: Container = Depends(get_container)) -> dict:
     """キャンセルを要求する。走っている1行は最後まで走り、その先が止まる。"""
     return {"cancelled": c.jobs.cancel(job_id)}

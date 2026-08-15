@@ -1,0 +1,1224 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "コエコミ API",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RootResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/voices": {
+      "post": {
+        "summary": "Enroll Voice",
+        "operationId": "enroll_voice_voices_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enroll_voice_voices_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "大きすぎる",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/voices/{voice_id}": {
+      "delete": {
+        "summary": "Forget Voice",
+        "description": "明示的に忘れさせる（次の子に交代するとき）。参照音声のファイルも消える。",
+        "operationId": "forget_voice_voices__voice_id__delete",
+        "parameters": [
+          {
+            "name": "voice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Voice Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "post": {
+        "summary": "Create Job",
+        "operationId": "create_job_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "いまの状態では実行できない（声の期限切れ・音声の欠落）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job",
+        "operationId": "get_job_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "見つからない（期限切れを含む）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/cancel": {
+      "post": {
+        "summary": "Cancel Job",
+        "description": "キャンセルを要求する。走っている1行は最後まで走り、その先が止まる。",
+        "operationId": "cancel_job_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artifacts/{artifact_id}": {
+      "get": {
+        "summary": "Get Artifact",
+        "operationId": "get_artifact_artifacts__artifact_id__get",
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "音声（wav）または動画（mp4 / webm）",
+            "content": {
+              "audio/wav": {},
+              "video/mp4": {},
+              "video/webm": {}
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "見つからない（期限切れを含む）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artifacts": {
+      "post": {
+        "summary": "Upload Artifact",
+        "description": "クライアントが書き出した動画を預かる（QRコードで別端末に渡す用）。\n\nサーバー側レンダリングが使える環境では通らない経路。\n`canRender=false`（フォントが無い等）のときのフォールバック。",
+        "operationId": "upload_artifact_artifacts_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_artifact_artifacts_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "大きすぎる",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/render": {
+      "post": {
+        "summary": "Render Video",
+        "operationId": "render_video_render_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "いまの状態では実行できない（声の期限切れ・音声の欠落）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "この環境では利用できない（クライアント側にフォールバックする）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ops": {
+      "get": {
+        "summary": "Ops",
+        "operationId": "ops_ops_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cleanup": {
+      "post": {
+        "summary": "Cleanup",
+        "description": "イベント後の後片付け。声も生成物もまとめて消す。",
+        "operationId": "cleanup_cleanup_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "イベントの合言葉が違う",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArtifactResponse": {
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "title": "Artifactid"
+          },
+          "expiresSec": {
+            "type": "integer",
+            "title": "Expiressec"
+          }
+        },
+        "type": "object",
+        "required": ["artifactId", "expiresSec"],
+        "title": "ArtifactResponse"
+      },
+      "AuthDTO": {
+        "properties": {
+          "tokenRequired": {
+            "type": "boolean",
+            "title": "Tokenrequired"
+          }
+        },
+        "type": "object",
+        "required": ["tokenRequired"],
+        "title": "AuthDTO"
+      },
+      "Body_enroll_voice_voices_post": {
+        "properties": {
+          "audio": {
+            "type": "string",
+            "format": "binary",
+            "title": "Audio"
+          },
+          "reference_text": {
+            "type": "string",
+            "title": "Reference Text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": ["audio"],
+        "title": "Body_enroll_voice_voices_post"
+      },
+      "Body_upload_artifact_artifacts_post": {
+        "properties": {
+          "video": {
+            "type": "string",
+            "format": "binary",
+            "title": "Video"
+          }
+        },
+        "type": "object",
+        "required": ["video"],
+        "title": "Body_upload_artifact_artifacts_post"
+      },
+      "CancelResponse": {
+        "properties": {
+          "cancelled": {
+            "type": "boolean",
+            "title": "Cancelled"
+          }
+        },
+        "type": "object",
+        "required": ["cancelled"],
+        "title": "CancelResponse"
+      },
+      "CleanupResponse": {
+        "properties": {
+          "voices": {
+            "type": "integer",
+            "title": "Voices"
+          },
+          "artifacts": {
+            "type": "integer",
+            "title": "Artifacts"
+          }
+        },
+        "type": "object",
+        "required": ["voices", "artifacts"],
+        "title": "CleanupResponse"
+      },
+      "CreateJobRequest": {
+        "properties": {
+          "voiceId": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Voiceid"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Lines"
+          }
+        },
+        "type": "object",
+        "required": ["voiceId", "lines"],
+        "title": "CreateJobRequest"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": ["detail"],
+        "title": "ErrorResponse",
+        "description": "FastAPI の HTTPException が返す形。\n\n注意: 422（バリデーションエラー）だけは FastAPI が `HTTPValidationError`\nとして自前で定義しており、`detail` が **配列** になる。ここで上書きすると\n契約が嘘になるので、422 は宣言しない（schemathesis に指摘されて気づいた）。"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "\"ok\" か \"warming\"。warming の間は割り当てない"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "serverId": {
+            "type": "string",
+            "title": "Serverid"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ttsBackend": {
+            "type": "string",
+            "title": "Ttsbackend",
+            "description": "設定値（こう動かしたい）"
+          },
+          "ttsEffective": {
+            "type": "string",
+            "title": "Ttseffective",
+            "description": "実際に動いているもの。dummy ならフォールバック中"
+          },
+          "ttsFallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttsfallback",
+            "description": "dummy に落ちた理由。正常なら null"
+          },
+          "warmupError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warmuperror"
+          },
+          "canRender": {
+            "type": "boolean",
+            "title": "Canrender",
+            "description": "サーバー側で動画を作れるか"
+          },
+          "queueDepth": {
+            "type": "integer",
+            "title": "Queuedepth",
+            "description": "未処理の行数"
+          },
+          "activeJobs": {
+            "type": "integer",
+            "title": "Activejobs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "serverId",
+          "color",
+          "label",
+          "ttsBackend",
+          "ttsEffective",
+          "ttsFallback",
+          "warmupError",
+          "canRender",
+          "queueDepth",
+          "activeJobs"
+        ],
+        "title": "HealthResponse",
+        "description": "GET /health — フロントの接続先選びが最初に見る。"
+      },
+      "JobResponse": {
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "queued / running / done / failed / cancelled"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "finished": {
+            "type": "integer",
+            "title": "Finished"
+          },
+          "queuePosition": {
+            "type": "integer",
+            "title": "Queueposition",
+            "description": "いま一緒に使っている、自分以外の子の数。0 なら独り占め"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/LineResultDTO"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "できた行から順に増える"
+          }
+        },
+        "type": "object",
+        "required": ["jobId", "state", "total", "finished", "queuePosition", "error", "results"],
+        "title": "JobResponse",
+        "description": "POST /jobs, GET /jobs/{id} — 生成ジョブの状態。"
+      },
+      "LineResultDTO": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "artifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactid"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": ["index", "artifactId", "error"],
+        "title": "LineResultDTO",
+        "description": "1行ぶんの結果。成功なら artifactId、失敗なら error。"
+      },
+      "OpsResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "serverId": {
+            "type": "string",
+            "title": "Serverid"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "warmup": {
+            "$ref": "#/components/schemas/WarmupDTO"
+          },
+          "tts": {
+            "$ref": "#/components/schemas/TtsDTO"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/QueueDTO"
+          },
+          "voices": {
+            "$ref": "#/components/schemas/VoicesDTO"
+          },
+          "render": {
+            "$ref": "#/components/schemas/RenderDTO"
+          },
+          "retention": {
+            "$ref": "#/components/schemas/RetentionDTO"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/AuthDTO"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "serverId",
+          "label",
+          "color",
+          "warmup",
+          "tts",
+          "queue",
+          "voices",
+          "render",
+          "retention",
+          "auth"
+        ],
+        "title": "OpsResponse",
+        "description": "GET /ops — 運用者（先生・TA）が見る状態。"
+      },
+      "QueueDTO": {
+        "properties": {
+          "depth": {
+            "type": "integer",
+            "title": "Depth"
+          },
+          "activeJobs": {
+            "type": "integer",
+            "title": "Activejobs"
+          }
+        },
+        "type": "object",
+        "required": ["depth", "activeJobs"],
+        "title": "QueueDTO"
+      },
+      "RemovedResponse": {
+        "properties": {
+          "removed": {
+            "type": "boolean",
+            "title": "Removed"
+          }
+        },
+        "type": "object",
+        "required": ["removed"],
+        "title": "RemovedResponse"
+      },
+      "RenderDTO": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "frontendOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frontendorigin"
+          }
+        },
+        "type": "object",
+        "required": ["available", "reason", "frontendOrigin"],
+        "title": "RenderDTO"
+      },
+      "RenderRequest": {
+        "properties": {
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentDTO"
+            },
+            "type": "array",
+            "maxItems": 400,
+            "minItems": 1,
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": ["segments"],
+        "title": "RenderRequest"
+      },
+      "RetentionDTO": {
+        "properties": {
+          "artifactTtlSec": {
+            "type": "integer",
+            "title": "Artifactttlsec"
+          },
+          "videoTtlSec": {
+            "type": "integer",
+            "title": "Videottlsec"
+          },
+          "voiceTtlSec": {
+            "type": "integer",
+            "title": "Voicettlsec"
+          }
+        },
+        "type": "object",
+        "required": ["artifactTtlSec", "videoTtlSec", "voiceTtlSec"],
+        "title": "RetentionDTO"
+      },
+      "RootResponse": {
+        "properties": {
+          "app": {
+            "type": "string",
+            "title": "App"
+          },
+          "see": {
+            "type": "string",
+            "title": "See"
+          }
+        },
+        "type": "object",
+        "required": ["app", "see"],
+        "title": "RootResponse"
+      },
+      "SegmentDTO": {
+        "properties": {
+          "startMs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Startms"
+          },
+          "durMs": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Durms"
+          },
+          "panelPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Panelpath"
+          },
+          "subtitle": {
+            "type": "string",
+            "title": "Subtitle",
+            "default": ""
+          },
+          "artifactId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactid"
+          }
+        },
+        "type": "object",
+        "required": ["startMs", "durMs"],
+        "title": "SegmentDTO"
+      },
+      "TtsDTO": {
+        "properties": {
+          "configured": {
+            "type": "string",
+            "title": "Configured"
+          },
+          "effective": {
+            "type": "string",
+            "title": "Effective"
+          },
+          "fallbackReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallbackreason"
+          },
+          "workers": {
+            "type": "integer",
+            "title": "Workers"
+          }
+        },
+        "type": "object",
+        "required": ["configured", "effective", "fallbackReason", "workers"],
+        "title": "TtsDTO"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      },
+      "VoiceResponse": {
+        "properties": {
+          "voiceId": {
+            "type": "string",
+            "title": "Voiceid"
+          },
+          "expiresSec": {
+            "type": "integer",
+            "title": "Expiressec"
+          }
+        },
+        "type": "object",
+        "required": ["voiceId", "expiresSec"],
+        "title": "VoiceResponse",
+        "description": "POST /voices — 参照音声を1回だけ預けた結果。"
+      },
+      "VoicesDTO": {
+        "properties": {
+          "enrolled": {
+            "type": "integer",
+            "title": "Enrolled"
+          },
+          "ttlSec": {
+            "type": "integer",
+            "title": "Ttlsec"
+          }
+        },
+        "type": "object",
+        "required": ["enrolled", "ttlSec"],
+        "title": "VoicesDTO"
+      },
+      "WarmupDTO": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": ["state", "error"],
+        "title": "WarmupDTO"
+      }
+    }
+  }
+}

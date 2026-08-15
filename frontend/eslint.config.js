@@ -7,7 +7,8 @@ import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage'] },
+  // apiSchema.ts はサーバーのOpenAPIから生成する（手で直さない）。
+  { ignores: ['dist', 'node_modules', 'coverage', 'src/infrastructure/apiSchema.ts'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

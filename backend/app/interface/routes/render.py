@@ -16,6 +16,7 @@ from ...application.render import RenderFailed, RenderUnavailable
 from ...domain.timeline import MAX_SEGMENTS, InvalidTimeline, Segment, validate
 from ..container import Container
 from ..deps import get_container
+from ..dto import ArtifactResponse, errors
 from ..security import require_token
 
 log = logging.getLogger("koekomi.routes.render")
@@ -34,7 +35,12 @@ class RenderRequest(BaseModel):
     segments: list[SegmentDTO] = Field(min_length=1, max_length=MAX_SEGMENTS)
 
 
-@router.post("/render", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/render",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ArtifactResponse,
+    responses=errors(400, 401, 409, 503),
+)
 async def render_video(req: RenderRequest, c: Container = Depends(get_container)) -> dict:
     try:
         timeline = validate(

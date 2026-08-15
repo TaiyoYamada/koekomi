@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 from ...infrastructure.artifact_store import MIME_BY_EXT
 from ..container import Container
 from ..deps import get_container
+from ..dto import ArtifactResponse, errors
 from ..security import require_token
 
 log = logging.getLogger("koekomi.routes.artifacts")
@@ -28,7 +29,19 @@ MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 UPLOADABLE_EXT = {"mp4", "webm"}
 
 
-@router.get("/artifacts/{artifact_id}")
+# ファイルを返すので JSON ではない。OpenAPI にもそう書く
+# （そうしないと生成される型が「JSONが返る」ことになり、契約が嘘になる）。
+@router.get(
+    "/artifacts/{artifact_id}",
+    response_class=FileResponse,
+    responses={
+        200: {
+            "description": "音声（wav）または動画（mp4 / webm）",
+            "content": {"audio/wav": {}, "video/mp4": {}, "video/webm": {}},
+        },
+        **errors(401, 404),
+    },
+)
 async def get_artifact(artifact_id: str, c: Container = Depends(get_container)) -> FileResponse:
     path = c.artifacts.path(artifact_id)
     if path is None:
@@ -41,7 +54,12 @@ async def get_artifact(artifact_id: str, c: Container = Depends(get_container)) 
     )
 
 
-@router.post("/artifacts", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/artifacts",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ArtifactResponse,
+    responses=errors(400, 401, 413),
+)
 async def upload_artifact(
     c: Container = Depends(get_container),
     video: UploadFile = File(...),
