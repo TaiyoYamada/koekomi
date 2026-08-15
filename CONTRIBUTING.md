@@ -154,6 +154,14 @@ npm run api:types   # 生成し直す
 生成物（`frontend/src/infrastructure/apiSchema.ts`）は**手で編集しない**でください。
 CI が「生成し直して差分が出ないか」を検査します。
 
+> **依存の更新でも落ちることがあります。**
+> FastAPI や Pydantic を上げると OpenAPI の出力がわずかに変わるためです
+> （実際 0.115 → 0.141 で、ファイル項目の `format: binary` が消え、
+> バリデーションエラーに `input` が増えました）。
+> Dependabot の PR が「API契約」で落ちたら、その枝で
+> `npm run api:types` を実行してコミットしてください。
+> **検査が壊れているのではなく、契約が本当に変わっています。**
+
 ### 負荷を試したいとき
 
 GPU が無くても、本番の混み方を再現できます。
