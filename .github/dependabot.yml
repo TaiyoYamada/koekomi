@@ -1,0 +1,42 @@
+# 依存の更新を自動で提案する。
+#
+# 子どもの声を扱うアプリなので、セキュリティ更新は放置しない。
+# ただしイベント直前に大量のPRが来ても困るので、週1にまとめる。
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # 開発ツールはまとめて上げる（1つずつPRが来ると読めない）。
+      dev-tools:
+        patterns:
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier'
+          - 'typescript*'
+          - 'vitest*'
+          - '@playwright/*'
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'chore'
+
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'ci'
