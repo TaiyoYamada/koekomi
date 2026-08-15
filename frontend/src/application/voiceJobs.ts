@@ -391,17 +391,27 @@ export async function cancelGeneration(): Promise<void> {
   await cancelJob(assignment.apiUrl, jobId)
 }
 
+interface RememberedJob {
+  jobId: string
+  lines: LineId[]
+  serverId: string
+}
+
+/** 控えておいたジョブを読む。壊れていれば null（呼び出し側を止めない）。 */
+function readRememberedJob(): RememberedJob | null {
+  try {
+    const raw = localStorage.getItem(LS_JOB)
+    return raw ? (JSON.parse(raw) as RememberedJob) : null
+  } catch {
+    return null
+  }
+}
+
 /** 中断していたジョブを引き継ぐ（リロード後・タブ復帰後）。 */
 export async function resumeJobIfAny(): Promise<void> {
   const assignment = getAssignment()
   if (!assignment) return
-  let saved: { jobId: string; lines: LineId[]; serverId: string } | null = null
-  try {
-    const raw = localStorage.getItem(LS_JOB)
-    saved = raw ? JSON.parse(raw) : null
-  } catch {
-    saved = null
-  }
+  const saved = readRememberedJob()
   if (!saved?.jobId) return
   // 別の台のジョブは追えない（成果物もその台にある）。
   if (saved.serverId !== assignment.serverId) {
