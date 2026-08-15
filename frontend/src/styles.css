@@ -44,8 +44,9 @@ html {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI",
-    system-ui, sans-serif;
+  font-family:
+    -apple-system, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', system-ui,
+    sans-serif;
   font-size: 20px;
   -webkit-text-size-adjust: 100%;
 }
@@ -1527,4 +1528,57 @@ rt {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ===== 生成の進み具合（待ち順位と一緒に出す） ===== */
+/* 3分の無言スピナーより、どこまで進んだかが見えるほうが待てる。 */
+.progress-track {
+  width: min(420px, 100%);
+  height: 10px;
+  margin: 12px auto 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand, #ff7a1a);
+  transition: width 0.3s ease;
+}
+
+/* ===== 先生用: 全台の状態表 ===== */
+/* 端末ごとの localStorage ではなく、サーバー側の事実を1画面で見る。 */
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.ops-table th,
+.ops-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.ops-table th {
+  font-weight: 700;
+  color: #666;
+}
+
+.ops-table tr.is-current td {
+  background: rgba(255, 122, 26, 0.08);
+}
+
+.ops-table code {
+  font-size: 12px;
+}
+
+/* 表が広いときは表だけ横スクロールさせる（ページ全体を横に動かさない）。 */
+.admin .card:has(.ops-table) {
+  overflow-x: auto;
 }
