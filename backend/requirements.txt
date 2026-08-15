@@ -1,7 +1,7 @@
 # ===== サーバー本体（dummy 実装ならこれだけで動く）=====
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-python-multipart==0.0.9
+python-multipart==0.0.32
 requests==2.32.3        # colab_runner が GAS への登録・heartbeat に使う
 
 # 動画のサーバー側レンダリング（字幕の焼き込み）。
