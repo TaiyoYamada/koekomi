@@ -2,13 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Ruby } from '../components/Furigana'
 import { colorDef } from '../colors'
-import {
-  fetchFleetStatus,
-  readRegistryUrl,
-  unregisterServiceWorker,
-  writeRegistryUrl,
-  type ServerStatus,
-} from '../../application/ops'
+import { fetchFleetStatus, unregisterServiceWorker, type ServerStatus } from '../../application/ops'
 import { forgetAssignment, reassign, useConnection } from '../../application/connection'
 import { clearSavedWork } from '../../application/persistence'
 import { resetVoiceState } from '../../application/voiceJobs'
@@ -36,7 +30,6 @@ export function AdminPanel() {
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [gasUrl, setGasUrl] = useState(readRegistryUrl())
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -180,33 +173,6 @@ export function AdminPanel() {
         <button className="btn stop" onClick={() => void doResetWork()}>
           作品をリセット
         </button>
-      </div>
-
-      <div className="card">
-        <h3>サーバー名簿のURL</h3>
-        <p className="step-hint" style={{ marginTop: 0 }}>
-          この端末だけ、別の名簿（GAS）を見に行かせます。空にすると .env の設定に戻ります。
-          当日に名簿を差し替えたいとき、再ビルドせずに切り替えられます。
-        </p>
-        <div className="row">
-          <input
-            type="text"
-            value={gasUrl}
-            placeholder="https://script.google.com/macros/s/XXXX/exec"
-            onChange={(e) => setGasUrl(e.target.value)}
-            style={{ flex: 1, minWidth: 260 }}
-            aria-label="サーバー名簿のURL"
-          />
-          <button
-            className="btn secondary"
-            onClick={() => {
-              writeRegistryUrl(gasUrl)
-              void refresh()
-            }}
-          >
-            反映
-          </button>
-        </div>
       </div>
 
       <div className="card">

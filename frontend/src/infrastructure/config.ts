@@ -1,22 +1,18 @@
-// 環境変数まわり。admin 画面から localStorage で上書きもできる。
-
-const LS_GAS_OVERRIDE = 'koekomi.gasUrlOverride'
+// 環境変数まわり。
 
 function env(name: string): string {
   return ((import.meta.env[name] as string | undefined) ?? '').trim()
 }
 
-/** GAS の Web アプリ URL。localStorage の上書き > .env の順で優先。 */
+/**
+ * GAS の Web アプリ URL（サーバー名簿）。
+ *
+ * 以前は先生用設定から端末ごとに上書きできたが、名簿は1つしか使わないため
+ * 外した。端末ごとに別の名簿を向ける手段があると、1台だけ違う名簿を見て
+ * 「その iPad だけサーバーが見つからない」という直しにくい状態を作れてしまう。
+ */
 export function getGasUrl(): string {
-  const override = localStorage.getItem(LS_GAS_OVERRIDE)
-  if (override && override.trim()) return override.trim()
   return env('VITE_GAS_URL')
-}
-
-/** admin 画面から GAS URL を上書きする（空文字で解除）。 */
-export function setGasUrlOverride(url: string): void {
-  if (url.trim()) localStorage.setItem(LS_GAS_OVERRIDE, url.trim())
-  else localStorage.removeItem(LS_GAS_OVERRIDE)
 }
 
 /**

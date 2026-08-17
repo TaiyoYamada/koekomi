@@ -4,7 +4,6 @@
 // 画面は表を描くだけにする。
 
 import { fetchHealth, type HealthInfo } from '../infrastructure/apiClient'
-import { getGasUrl, setGasUrlOverride } from '../infrastructure/config'
 import { fetchServers } from '../infrastructure/registryClient'
 import type { ServerInfo } from '../domain/types'
 
@@ -31,12 +30,3 @@ export function isUsable(status: ServerStatus): boolean {
 
 /** アプリのキャッシュを捨てる（更新が反映されないときの逃げ道）。 */
 export { unregisterServiceWorker } from '../infrastructure/serviceWorker'
-
-/** 名簿URLの読み書き（当日、再ビルドせず差し替えるため）。 */
-export function readRegistryUrl(): string {
-  return getGasUrl()
-}
-
-export function writeRegistryUrl(url: string): void {
-  setGasUrlOverride(url)
-}
