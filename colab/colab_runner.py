@@ -118,6 +118,32 @@ def install_dependencies() -> None:
             check = subprocess.run([sys.executable, "-c", "import torch, qwen_tts; print('AI deps OK')"])
             if check.returncode != 0:
                 print("   ⚠️ ライブラリは入ったが import に失敗しています（dummyになります）。上のエラーを確認。")
+            else:
+                _warn_if_restart_needed()
+
+
+def _warn_if_restart_needed() -> None:
+    """新しいプロセスでは import できるのに、このプロセスではできない状態を検知する。
+
+    Colab は起動時に PIL などを import 済みで、pip がそれを別バージョンに
+    入れ替えると、このプロセスの中だけ新旧のファイルが混ざって壊れる。
+    バックエンドは同じプロセスで動くので、そのまま進むと気づかないまま
+    dummy（ピー音）になる。実際に当日これで音が出なかった。
+    """
+    try:
+        import qwen_tts  # noqa: F401
+        import torch  # noqa: F401
+    except Exception as e:
+        print()
+        print("   " + "=" * 60)
+        print("   ⚠️ ランタイムの再起動が必要です。")
+        print(f"      理由: {type(e).__name__}: {e}")
+        print("      ライブラリの入れ替えが、起動済みのこのランタイムと噛み合っていません。")
+        print("      新しいプロセスでは読み込めているので、")
+        print("      「ランタイム > ランタイムを再起動」してから、セル1から実行し直してください。")
+        print("      このまま進めると音声が dummy（ピー音）になります。")
+        print("   " + "=" * 60)
+        print()
 
 
 def start_backend() -> threading.Thread | None:
