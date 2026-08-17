@@ -115,6 +115,8 @@ class RetentionDTO(BaseModel):
 
 class AuthDTO(BaseModel):
     tokenRequired: bool
+    # /cleanup が使える状態か（ADMIN_TOKEN が設定されているか）。
+    adminConfigured: bool
 
 
 class OpsResponse(BaseModel):
@@ -160,10 +162,10 @@ def errors(*codes: int) -> dict[int | str, dict]:
     """route の `responses=` に渡すエラー定義を作る。"""
     known = {
         400: "入力が不正",
-        401: "イベントの合言葉が違う",
+        401: "合言葉が違う（/cleanup は管理者トークンが違う）",
         404: "見つからない（期限切れを含む）",
         409: "いまの状態では実行できない（声の期限切れ・音声の欠落）",
         413: "大きすぎる",
-        503: "この環境では利用できない（クライアント側にフォールバックする）",
+        503: "この環境では利用できない（クライアント側へフォールバック／未設定で無効）",
     }
     return {code: {"model": ErrorResponse, "description": known.get(code, "エラー")} for code in codes}

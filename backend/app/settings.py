@@ -50,6 +50,11 @@ class Settings:
     # --- 公開・認証 ---------------------------------------------------------
     # 空なら認証なし（ローカル開発用）。本番では必ず設定する。
     event_token: str = ""
+    # 管理者トークン。/cleanup（全員分を消す）だけに使う。
+    # event_token はフロントのバンドルに載る＝参加者全員が読めるので、
+    # 「全消し」を守るには弱すぎる。こちらはフロントに配らない。
+    # 空なら /cleanup は無効（開いたままにはしない）。
+    admin_token: str = ""
     # 既定を "*" にしない。設定し忘れを本番で気づけるようにする。
     cors_origins: str = "http://localhost:5173"
     # 写真を取りに行く先（フロントの公開オリジン）。レンダリングで使う。
@@ -79,6 +84,7 @@ class Settings:
             video_ttl_sec=_int("VIDEO_TTL_SEC", 1800),
             voice_ttl_sec=_int("VOICE_TTL_SEC", 3600),
             event_token=os.getenv("EVENT_TOKEN", "").strip(),
+            admin_token=os.getenv("ADMIN_TOKEN", "").strip(),
             cors_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173"),
             frontend_origin=os.getenv("FRONTEND_ORIGIN", "").rstrip("/"),
             ffmpeg_bin=os.getenv("FFMPEG_BIN", "ffmpeg"),

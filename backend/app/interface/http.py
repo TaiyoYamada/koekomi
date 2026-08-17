@@ -48,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(artifacts.router)
     app.include_router(render.router)
     app.include_router(ops.router)
+    app.include_router(ops.admin_router)
     return app
 
 
@@ -65,6 +66,8 @@ def _log_startup(c: Container) -> None:
         log.warning("⚠️ TTS が dummy で動作中（Qwen3-TTS を読み込めていません）: %s", c.tts_fallback_reason)
     if not s.event_token:
         log.warning("⚠️ EVENT_TOKEN が未設定です。誰でもこのAPIを叩けます（本番では必ず設定）。")
+    if not s.admin_token:
+        log.warning("ADMIN_TOKEN が未設定です。/cleanup は使えません（後片付けは手動になります）。")
     if s.cors_list() == ["*"]:
         log.warning("⚠️ CORS_ORIGINS が * です。本番ではフロントのオリジンに固定してください。")
     if not c.can_render():

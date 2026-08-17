@@ -17,6 +17,8 @@ from app.interface.http import create_app
 from app.settings import Settings
 
 TEST_TOKEN = "test-token"
+# 合言葉とは**別物**であることをテストで示すため、意図的に違う値にする。
+TEST_ADMIN_TOKEN = "test-admin-token"
 
 
 def make_settings(tmp_path: Path, **overrides) -> Settings:
@@ -27,6 +29,7 @@ def make_settings(tmp_path: Path, **overrides) -> Settings:
         "tmp_dir": tmp_path / "tmp",
         "cache_dir": tmp_path / "cache",
         "event_token": TEST_TOKEN,
+        "admin_token": TEST_ADMIN_TOKEN,
         "cors_origins": "http://localhost:5173",
         "server_id": "test-server",
     }
@@ -45,6 +48,15 @@ def client(settings: Settings):
     app = create_app(settings)
     with TestClient(app) as c:
         c.headers.update({"X-Event-Token": TEST_TOKEN})
+        yield c
+
+
+@pytest.fixture()
+def admin_client(settings: Settings):
+    """管理者ヘッダーも付けた TestClient（/cleanup 用）。"""
+    app = create_app(settings)
+    with TestClient(app) as c:
+        c.headers.update({"X-Event-Token": TEST_TOKEN, "X-Admin-Token": TEST_ADMIN_TOKEN})
         yield c
 
 

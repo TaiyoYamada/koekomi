@@ -196,19 +196,52 @@ def test_ops_reports_state(client, fake_audio):
     assert body["tts"]["effective"] == "dummy"
     assert body["voices"]["enrolled"] == 1
     assert body["auth"]["tokenRequired"] is True
+    assert body["auth"]["adminConfigured"] is True
     assert "artifactTtlSec" in body["retention"]
 
 
-def test_cleanup_removes_voices_and_artifacts(client, fake_audio, settings):
-    voice_id = enroll(client, fake_audio)
-    job_id = client.post("/jobs", json={"voiceId": voice_id, "lines": ["あ", "い"]}).json()["jobId"]
-    wait_for_job(client, job_id)
+def test_cleanup_removes_voices_and_artifacts(admin_client, fake_audio, settings):
+    voice_id = enroll(admin_client, fake_audio)
+    job_id = admin_client.post("/jobs", json={"voiceId": voice_id, "lines": ["あ", "い"]}).json()["jobId"]
+    wait_for_job(admin_client, job_id)
 
-    res = client.post("/cleanup")
+    res = admin_client.post("/cleanup")
     assert res.status_code == 200
     assert res.json()["voices"] == 1
     assert res.json()["artifacts"] >= 2
     assert not any(settings.artifact_dir.iterdir())
+
+
+def test_cleanup_rejects_the_event_token(client):
+    """合言葉はフロントのバンドルに載る＝参加者全員が読める。
+
+    それで「全員分を消す」が通ってしまうと、イベント中に誰か一人の出来心で
+    全滅する。合言葉だけでは 401 になること。
+    """
+    res = client.post("/cleanup")
+    assert res.status_code == 401
+    assert "管理者" in res.json()["detail"]
+
+
+def test_cleanup_rejects_a_wrong_admin_token(client):
+    res = client.post("/cleanup", headers={"X-Admin-Token": "nope"})
+    assert res.status_code == 401
+
+
+def test_cleanup_is_disabled_when_admin_token_is_unset(tmp_path):
+    """未設定なら **開けっ放しにせず閉じる**。設定漏れを 503 で気づけるように。"""
+    from fastapi.testclient import TestClient
+
+    from app.interface.http import create_app
+
+    from .conftest import TEST_ADMIN_TOKEN, make_settings
+
+    app = create_app(make_settings(tmp_path, admin_token=""))
+    with TestClient(app) as c:
+        c.headers.update({"X-Event-Token": TEST_TOKEN, "X-Admin-Token": TEST_ADMIN_TOKEN})
+        res = c.post("/cleanup")
+        assert res.status_code == 503
+        assert c.get("/ops").json()["auth"]["adminConfigured"] is False
 
 
 def test_health_reports_render_capability(client):
