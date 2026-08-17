@@ -165,6 +165,8 @@ jobs:
         env:
           TTS_BACKEND: dummy
           EVENT_TOKEN: ci-token
+          # 合言葉とは別物であることを CI でも踏む（同じ値にしない）。
+          ADMIN_TOKEN: ci-admin-token
           FRONTEND_ORIGIN: http://127.0.0.1:8080
           CORS_ORIGINS: http://127.0.0.1:8080
         run: |
@@ -184,4 +186,5 @@ jobs:
           grep -q "音声を取得できた" /tmp/smoke.log || { echo "❌ 音声生成の経路が壊れています"; exit 1; }
           grep -q "動画を作れた"   /tmp/smoke.log || { echo "❌ サーバー側レンダリングが壊れています"; exit 1; }
           grep -q "トークン無しは 401" /tmp/smoke.log || { echo "❌ 認証が効いていません"; exit 1; }
+          grep -q "/cleanup は合言葉では通らない" /tmp/smoke.log || { echo "❌ 合言葉だけで全消しできてしまいます"; exit 1; }
           echo "✅ 本番の経路が通りました"
