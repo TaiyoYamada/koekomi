@@ -94,29 +94,39 @@ TTS_BACKEND=dummy uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## 2. API
 
-すべて `X-Event-Token` ヘッダーが必要です（`/health` を除く）。
+すべて `X-Event-Token` ヘッダーが必要です（`/health` を除く。`/cleanup` だけは別枠 → 表の下）。
 ヘッダーを付けられない経路（`<audio src>` / QRコード）のために `?t=` も受け付けます。
 
-| メソッド | パス                | 用途                                               |
-| -------- | ------------------- | -------------------------------------------------- |
-| GET      | `/health`           | 生存確認。`status` が `warming` の間は割り当てない |
-| POST     | `/voices`           | 参照音声を**1回だけ**預けて `voiceId` をもらう     |
-| DELETE   | `/voices/{id}`      | 声を忘れさせる（参照音声のファイルごと削除）       |
-| POST     | `/jobs`             | 生成ジョブを積む。202 で即返る                     |
-| GET      | `/jobs/{id}`        | 進み具合。1行できるごとに `results` が増える       |
-| POST     | `/jobs/{id}/cancel` | 協調キャンセル（走っている1行は終わる）            |
-| GET      | `/artifacts/{id}`   | 生成物の取得。uuid + TTL                           |
-| POST     | `/artifacts`        | クライアント書き出しの動画を預ける                 |
-| POST     | `/render`           | タイムラインから動画を作る                         |
-| GET      | `/ops`              | 運用者向けの状態                                   |
-| POST     | `/cleanup`          | 声も生成物もまとめて削除                           |
+| メソッド | パス                | 用途                                                 |
+| -------- | ------------------- | ---------------------------------------------------- |
+| GET      | `/health`           | 生存確認。`status` が `warming` の間は割り当てない   |
+| POST     | `/voices`           | 参照音声を**1回だけ**預けて `voiceId` をもらう       |
+| DELETE   | `/voices/{id}`      | 声を忘れさせる（参照音声のファイルごと削除）         |
+| POST     | `/jobs`             | 生成ジョブを積む。202 で即返る                       |
+| GET      | `/jobs/{id}`        | 進み具合。1行できるごとに `results` が増える         |
+| POST     | `/jobs/{id}/cancel` | 協調キャンセル（走っている1行は終わる）              |
+| GET      | `/artifacts/{id}`   | 生成物の取得。uuid + TTL                             |
+| POST     | `/artifacts`        | クライアント書き出しの動画を預ける                   |
+| POST     | `/render`           | タイムラインから動画を作る                           |
+| GET      | `/ops`              | 運用者向けの状態                                     |
+| POST     | `/cleanup`          | 声も生成物もまとめて削除。**`X-Admin-Token` が必要** |
+
+`/cleanup` だけは合言葉では通りません。合言葉はフロントのバンドルに載る
+＝**参加者なら誰でも読める**ので、「全員分を消す」を守るには弱すぎます。
+管理者トークンはフロントに配らず、運用者が手元から curl するときだけ使います。
+`ADMIN_TOKEN` が未設定なら `/cleanup` は 503 で無効になります（開けっ放しにしない）。
+
+```bash
+curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" https://xxxx.trycloudflare.com/cleanup
+```
 
 ### 環境変数（バックエンド）
 
 | 変数               | 既定                    | 意味                                                    |
 | ------------------ | ----------------------- | ------------------------------------------------------- |
 | `EVENT_TOKEN`      | （空）                  | **本番では必須。** 空だと無認証                         |
-| `CORS_ORIGINS`     | `http://localhost:5173` | 本番はフロントのオリジン。`*` にしない                  |
+| `ADMIN_TOKEN`      | （空）                  | `/cleanup` 専用。フロントに配らない。空だと 503 で無効  |
+| `CORS_ORIGINS`     | `http://localhost:5173` | 本番はフロントのオリジン。`*` にしない。カンマ区切り可  |
 | `FRONTEND_ORIGIN`  | （空）                  | 写真の取得元。未設定だとサーバーで動画を作れない        |
 | `WORKERS`          | `1`                     | GPU 1枚なら 1                                           |
 | `TTS_SERIALIZE`    | `1`                     | GPU 推論を直列化。0 にすると `WORKERS` が効く（要実測） |
