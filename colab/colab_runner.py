@@ -10,7 +10,9 @@ Colab のノートブック最後のセルで実行する想定:
     from google.colab import userdata
     os.environ["GAS_URL"]         = userdata.get("GAS_URL")
     os.environ["EVENT_TOKEN"]     = userdata.get("EVENT_TOKEN")   # フロントと同じ文字列
-    os.environ["FRONTEND_ORIGIN"] = "https://koekomi.vercel.app"  # 写真の取得元＝CORS許可先
+    os.environ["ADMIN_TOKEN"]     = userdata.get("ADMIN_TOKEN")   # /cleanup 用。フロントには配らない
+    os.environ["FRONTEND_ORIGIN"] = "https://koekomi.taiyoyamada.com"  # 写真の取得元
+    os.environ["CORS_ORIGINS"]    = "https://koekomi.taiyoyamada.com,https://koekomi.vercel.app"
     os.environ["SERVER_ID"]       = "colab-1"
     os.environ["SERVER_COLOR"]    = "red"
     os.environ["SERVER_LABEL"]    = "赤サーバー"
@@ -45,6 +47,7 @@ os.environ.setdefault("SERVER_ID", SERVER_ID)
 os.environ.setdefault("SERVER_COLOR", SERVER_COLOR)
 os.environ.setdefault("SERVER_LABEL", SERVER_LABEL)
 # CORS はフロントのオリジンに固定する（既定の "*" に頼らない）。
+# CORS_ORIGINS を明示していればそちらが勝つ（カンマ区切りで複数オリジンを許可したい場合）。
 if FRONTEND_ORIGIN and not os.environ.get("CORS_ORIGINS"):
     os.environ["CORS_ORIGINS"] = FRONTEND_ORIGIN
 
@@ -55,6 +58,9 @@ def preflight() -> None:
     if not os.environ.get("EVENT_TOKEN"):
         print("   ⚠️ EVENT_TOKEN が未設定です。誰でもこのAPIを叩ける状態になります。")
         print("      子どもの声を扱うので、本番では必ず設定してください。")
+    if not os.environ.get("ADMIN_TOKEN"):
+        print("   ⚠️ ADMIN_TOKEN が未設定です。後片付け（/cleanup）が使えません。")
+        print("      イベント後の削除は、ランタイム停止で代用することになります。")
     if not FRONTEND_ORIGIN:
         print("   ⚠️ FRONTEND_ORIGIN が未設定です。")
         print("      サーバー側での動画作成が使えず、iPad側の書き出し（時間がかかる）になります。")
