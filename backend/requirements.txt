@@ -6,7 +6,16 @@ requests==2.34.2        # colab_runner が GAS への登録・heartbeat に使�
 
 # 動画のサーバー側レンダリング（字幕の焼き込み）。
 # 軽いのでここに入れる。日本語フォントは OS 側に必要（Colab は fonts-noto-cjk）。
-pillow==12.3.0
+#
+# ★バージョンを固定しないこと。Colab には Pillow が最初から入っており、
+#   ここで別バージョンを強制すると入れ替えが起きる。ところがランタイムは
+#   起動時に既に PIL を import 済みなので、入れ替え後のプロセスでは
+#   新旧のファイルが混ざり、`ImportError: cannot import name '_Ink' from
+#   'PIL._typing'` が出る。これは torch/qwen_tts の import まで巻き込むため、
+#   TTS が dummy（ピー音）にフォールバックする原因になった。
+#   使っているのは Image / ImageDraw / ImageFont の基本APIだけなので、
+#   Colab に入っているものをそのまま使う。
+pillow>=11,<13
 
 # ===== AI バックエンド（Qwen3-TTS）=====
 # 重い依存は backend/requirements-ai.txt に分離している。
