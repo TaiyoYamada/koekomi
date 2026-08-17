@@ -215,6 +215,8 @@ export interface paths {
         /**
          * Cleanup
          * @description イベント後の後片付け。声も生成物もまとめて消す。
+         *
+         *     `X-Admin-Token` が要る。合言葉では通らない（`require_admin_token` 参照）。
          */
         post: operations["cleanup_cleanup_post"];
         delete?: never;
@@ -238,6 +240,8 @@ export interface components {
         AuthDTO: {
             /** Tokenrequired */
             tokenRequired: boolean;
+            /** Adminconfigured */
+            adminConfigured: boolean;
         };
         /** Body_enroll_voice_voices_post */
         Body_enroll_voice_voices_post: {
@@ -586,7 +590,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -635,7 +639,7 @@ export interface operations {
                     "application/json": components["schemas"]["RemovedResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -686,7 +690,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -735,7 +739,7 @@ export interface operations {
                     "application/json": components["schemas"]["JobResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -784,7 +788,7 @@ export interface operations {
                     "application/json": components["schemas"]["CancelResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -826,7 +830,7 @@ export interface operations {
                     "video/webm": unknown;
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -886,7 +890,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -946,7 +950,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -973,7 +977,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description この環境では利用できない（クライアント側にフォールバックする） */
+            /** @description この環境では利用できない（クライアント側へフォールバック／未設定で無効） */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1002,7 +1006,7 @@ export interface operations {
                     "application/json": components["schemas"]["OpsResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1031,8 +1035,17 @@ export interface operations {
                     "application/json": components["schemas"]["CleanupResponse"];
                 };
             };
-            /** @description イベントの合言葉が違う */
+            /** @description 合言葉が違う（/cleanup は管理者トークンが違う） */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description この環境では利用できない（クライアント側へフォールバック／未設定で無効） */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
