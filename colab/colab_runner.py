@@ -66,6 +66,51 @@ def preflight() -> None:
         print("      サーバー側での動画作成が使えず、iPad側の書き出し（時間がかかる）になります。")
     if not GAS_URL:
         print("   ⚠️ GAS_URL が未設定です。名簿に載らないので、iPad から見つけてもらえません。")
+    check_gpu()
+
+
+def check_gpu() -> None:
+    """GPU が本当に付いているか、依存を入れる前に確かめる。
+
+    **1アカウントで2セッション目を立てると、GPU を取り逃すことがある。**
+    取り逃しても `tts_qwen._load` は黙って CPU にフォールバックするので、
+    /health は "ok"・音声は "qwen" のまま、1行だけが数十秒かかる台ができる。
+    見た目が健康なので iPad は普通に割り当て続け、その台の子だけが待たされる。
+
+    ここで気づけば、ランタイムのタイプを直すか、その台を諦めるかを選べる。
+    torch はまだ入っていない段階なので nvidia-smi で見る。
+    """
+    if os.environ.get("TTS_BACKEND", "qwen").lower() == "dummy":
+        print("   TTS_BACKEND=dummy なので GPU は使いません（音声はピー音になります）。")
+        return
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as e:
+        _gpu_missing(f"nvidia-smi を実行できません（{type(e).__name__}: {e}）")
+        return
+    name = result.stdout.strip()
+    if result.returncode != 0 or not name:
+        _gpu_missing("nvidia-smi が GPU を見つけられませんでした")
+        return
+    print(f"   GPU: {name}")
+
+
+def _gpu_missing(reason: str) -> None:
+    print()
+    print("   " + "=" * 60)
+    print("   ⚠️ GPU が割り当てられていません。")
+    print(f"      理由: {reason}")
+    print("      このまま進めると CPU で動きます。動きはしますが1行に数十秒かかり、")
+    print("      **見た目は正常なまま**この台の子ども全員が待たされます。")
+    print("      「ランタイム > ランタイムのタイプを変更 > GPU」にしてから実行し直すか、")
+    print("      同じアカウントで既に1台動かしているなら、この台は諦めてください。")
+    print("   " + "=" * 60)
+    print()
 
 
 def install_dependencies() -> None:
@@ -332,6 +377,26 @@ def self_check(api_url: str) -> None:
         print("   ⚠️ 動画はiPad側で書き出します（時間がかかります）。FRONTEND_ORIGIN とフォントを確認。")
     if health.get("status") == "warming":
         print("   モデルを読み込み中です。終わるまで、この台は割り当てられません（数分）。")
+    if tts == "qwen":
+        _report_inference_device()
+
+
+def _report_inference_device() -> None:
+    """ライブラリを入れたあとで、推論が本当に GPU に載ったか確かめる。
+
+    preflight の nvidia-smi は「箱に GPU があるか」しか見ていない。
+    torch が CUDA を掴めていなければ、結局 CPU で推論することになる。
+    """
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            print(f"   推論デバイス: cuda ({torch.cuda.get_device_name(0)})")
+            return
+        print("   ⚠️ 推論デバイスが CPU です。1行に数十秒かかり、この台の全員が待たされます。")
+        print("      GPU ランタイムか確認してください（この台は使わないほうが安全です）。")
+    except Exception as e:
+        print(f"   推論デバイスを確認できませんでした: {type(e).__name__}: {e}")
 
 
 def heartbeat_loop(api_url: str) -> None:
