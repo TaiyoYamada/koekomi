@@ -341,6 +341,11 @@ export interface components {
             queueDepth: number;
             /** Activejobs */
             activeJobs: number;
+            /**
+             * Voicesenrolled
+             * @description この台に声を預けている子の人数。VOICE_TTL_SEC で自然に減る
+             */
+            voicesEnrolled: number;
         };
         /**
          * JobResponse

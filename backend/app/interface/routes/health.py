@@ -39,6 +39,12 @@ async def health(c: Container = Depends(get_container)) -> dict:
         # 待ち具合（子どもに見せる順位はジョブ側で持つ。これは運用者向け）
         "queueDepth": c.jobs.queue_depth(),
         "activeJobs": c.jobs.active_jobs(),
+        # この台を実際に使っている子の人数。
+        # 「何台つながっているか」はサーバーには分からない（名簿から選んで
+        # /health を叩くだけの端末は、こちらから見えない）。声を預けた時点で
+        # 初めてサーバーの事実になるので、それを人数として出す。
+        # 端末側に presence を持たせないのは ADR 0001 の決定のまま。
+        "voicesEnrolled": c.voices.count(),
     }
 
 

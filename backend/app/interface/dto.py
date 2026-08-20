@@ -32,6 +32,7 @@ class HealthResponse(BaseModel):
     canRender: bool = Field(description="サーバー側で動画を作れるか")
     queueDepth: int = Field(description="未処理の行数")
     activeJobs: int
+    voicesEnrolled: int = Field(description="この台に声を預けている子の人数。VOICE_TTL_SEC で自然に減る")
 
 
 class RootResponse(BaseModel):

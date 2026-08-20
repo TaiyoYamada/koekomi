@@ -249,3 +249,20 @@ def test_health_reports_render_capability(client):
     assert "canRender" in body
     assert body["ttsEffective"] == "dummy"
     assert body["status"] in ("ok", "warming")
+
+
+def test_health_counts_enrolled_children(client, fake_audio):
+    """先生用画面の「人数」。台ごとの偏りを見るために使う。
+
+    「何台つながっているか」は名簿から選ぶだけの端末が見えないので測れない。
+    声を預けた時点で初めてサーバーの事実になる、という線引きをここで固定する。
+    """
+    assert client.get("/health").json()["voicesEnrolled"] == 0
+
+    first = enroll(client, fake_audio)
+    enroll(client, fake_audio)
+    assert client.get("/health").json()["voicesEnrolled"] == 2
+
+    # 次の子に渡すときは声を消す。人数もその場で減る（TTL 待ちにしない）。
+    assert client.delete(f"/voices/{first}").json()["removed"] is True
+    assert client.get("/health").json()["voicesEnrolled"] == 1

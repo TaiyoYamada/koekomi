@@ -808,6 +808,11 @@
           "activeJobs": {
             "type": "integer",
             "title": "Activejobs"
+          },
+          "voicesEnrolled": {
+            "type": "integer",
+            "title": "Voicesenrolled",
+            "description": "この台に声を預けている子の人数。VOICE_TTL_SEC で自然に減る"
           }
         },
         "type": "object",
@@ -823,7 +828,8 @@
           "warmupError",
           "canRender",
           "queueDepth",
-          "activeJobs"
+          "activeJobs",
+          "voicesEnrolled"
         ],
         "title": "HealthResponse",
         "description": "GET /health — フロントの接続先選びが最初に見る。"
