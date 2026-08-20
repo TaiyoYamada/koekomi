@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { hashString, lastSeenMs, liveServers, tryOrder } from './connection'
+import { hashString, lastSeenMs, liveServers, preferEmptier, tryOrder } from './connection'
+import type { HealthInfo } from '../infrastructure/apiClient'
 import type { ServerInfo } from '../domain/types'
 
 function server(id: string, patch: Partial<ServerInfo> = {}): ServerInfo {
@@ -108,5 +109,39 @@ describe('hashString', () => {
     const seen = new Set<number>()
     for (let i = 0; i < 200; i++) seen.add(hashString(`d-${i}`))
     expect(seen.size).toBeGreaterThan(190)
+  })
+})
+
+describe('preferEmptier', () => {
+  const health = (voicesEnrolled: number) => ({ voicesEnrolled }) as HealthInfo
+  const candidate = (id: string, n: number) => ({ server: server(id), health: health(n) })
+
+  it('人数の少ない台を先に置く', () => {
+    const sorted = preferEmptier([candidate('a', 3), candidate('b', 0), candidate('c', 1)])
+    expect(sorted.map((c) => c.server.serverId)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('同数なら渡された順（＝ハッシュ順）のまま', () => {
+    // ここが本質。授業開始の合図では全台 0 人で横並びになる。
+    // 人数で決め打つと全員が同じ台に殺到する（ADR 0001 の壊れ方）。
+    const sorted = preferEmptier([candidate('c', 0), candidate('a', 0), candidate('b', 0)])
+    expect(sorted.map((c) => c.server.serverId)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('全台0人のとき、端末ごとの散らばりが tryOrder のまま保たれる', () => {
+    const six = ['colab-1', 'colab-2', 'colab-3', 'colab-4', 'colab-5', 'colab-6'].map((id) =>
+      server(id),
+    )
+    for (let i = 0; i < 50; i++) {
+      const order = tryOrder(six, `ipad-${i}`)
+      const picked = preferEmptier(order.map((s) => ({ server: s, health: health(0) })))[0]
+      expect(picked.server.serverId).toBe(order[0].serverId)
+    }
+  })
+
+  it('人数が無いサーバー（古い版）は0人として扱う', () => {
+    const legacy = { server: server('old'), health: {} as HealthInfo }
+    const sorted = preferEmptier([candidate('a', 2), legacy])
+    expect(sorted.map((c) => c.server.serverId)).toEqual(['old', 'a'])
   })
 })

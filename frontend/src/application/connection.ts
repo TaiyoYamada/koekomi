@@ -1,8 +1,10 @@
 // どのサーバーを使うかを決める。
 //
-// ■ 負荷分散をやめた
-//   10人・3台（Colab Pro+）では GPU が余る。1台に全員乗っても捌ける。
-//   だから「他の端末が何をしているか」を知る必要がない。
+// ■ 負荷分散（＝調整）をやめた
+//   台数そのものは効く。1台のGPUは同時に1行しか作らないので、一斉に押されると
+//   「その台に来た総行数 × 1行の秒数」がそのまま待ち時間になるからだ。
+//   だが**どの台が空いているかを知る必要はない**。端末IDのハッシュで散らせば、
+//   通信ゼロで概ね均等に散る（connection.test.ts で検証している）。
 //   知る必要がなければ共有状態も要らず、GAS の presence も activeCount も
 //   capacity も消える。**調整（coordination）こそが高くつく部分**だった。
 //
@@ -17,7 +19,7 @@
 //   冗長: そこから順に /health を試す（調整ゼロ）
 //   これで負荷分散器は実質4行になった。
 
-import { fetchHealth } from '../infrastructure/apiClient'
+import { fetchHealth, type HealthInfo } from '../infrastructure/apiClient'
 import { getServerFreshSeconds } from '../infrastructure/config'
 import {
   clearAssignment,
@@ -86,6 +88,36 @@ export function tryOrder(servers: ServerInfo[], deviceId: string, exclude?: stri
   return pool.map((_, i) => pool[(start + i) % pool.length])
 }
 
+/** 割り当ての候補（名簿の1行と、その台が今どうなっているか）。 */
+export interface Candidate {
+  server: ServerInfo
+  health: HealthInfo
+}
+
+/**
+ * 空いている台を先に置く。**同数のときはハッシュ順のまま**。
+ *
+ * ■ なぜ「人数順に選ぶ」ではなく「ハッシュ順を保った並べ替え」なのか
+ *   授業開始の合図では全端末が同時につなぐ。その瞬間、人数はどの台も 0 で
+ *   横並びになる。人数だけで決めると全員が同じ台を選ぶ——ADR 0001 が
+ *   記録している「activeCount が全部 0 で全員が1台目に殺到する」壊れ方
+ *   そのものになる。
+ *
+ *   安定ソートにすると、同数のときの並びは tryOrder（＝ハッシュ）のままなので、
+ *   一斉接続の挙動は従来と1ミリも変わらない。差がついたとき——遅れて来た子、
+ *   フェイルオーバーで移ってきた子、先生が手で動かしたあと——だけ空いている台へ寄る。
+ *
+ *   人数は各サーバーが自分で数えた値を /health から直接読む。名簿（GAS）への
+ *   書き込みは相変わらずゼロで、端末どうしも互いを知らない。
+ *   **調整を増やさずに偏りだけ直す**、というのがここの狙い。
+ */
+export function preferEmptier(candidates: Candidate[]): Candidate[] {
+  // sort は仕様上あんてい（ES2019+）。同数の並びが崩れないことに依存している。
+  return [...candidates].sort(
+    (a, b) => (a.health.voicesEnrolled ?? 0) - (b.health.voicesEnrolled ?? 0),
+  )
+}
+
 // ---- 接続 -------------------------------------------------------------------
 
 function toAssignment(s: ServerInfo, canRender: boolean): Assignment {
@@ -119,10 +151,17 @@ async function reuseSaved(): Promise<Assignment | null> {
 export async function assignServer(exclude?: string): Promise<Assignment> {
   const servers = liveServers(await fetchServers())
   const order = tryOrder(servers, getDeviceId(), exclude)
-  for (const s of order) {
-    const health = await fetchHealth(s.apiUrl)
-    if (!health || health.status !== 'ok') continue
-    const assignment = toAssignment(s, health.canRender)
+  // 全台の /health を同時に見る。人数で比べるには全部の値が要るため。
+  // 「先頭が生きていれば即決」より1呼び出しぶん遅くなるが、増えるのは
+  // 台数ぶんの GET だけで、共有状態は1つも増えない。
+  const healths = await Promise.all(order.map((s) => fetchHealth(s.apiUrl)))
+  const usable = order
+    .map((server, i) => ({ server, health: healths[i] }))
+    // warming（モデル読み込み中）の台は掴まない。
+    .filter((c): c is Candidate => c.health?.status === 'ok')
+  const best = preferEmptier(usable)[0]
+  if (best) {
+    const assignment = toAssignment(best.server, best.health.canRender)
     saveAssignment(assignment)
     return assignment
   }
@@ -166,6 +205,32 @@ export async function connect(options: { exclude?: string; force?: boolean } = {
 /** 別の台へ移る（いまの台を除外して選び直す）。 */
 export async function reassign(): Promise<void> {
   await connect({ exclude: getAssignment()?.serverId })
+}
+
+/**
+ * 台を指名して移る（先生用設定から使う）。
+ *
+ * 自動選択（reassign）と違い、**指名した台が使えなければ移らない**。
+ * 「赤が詰まっているから黄へ」と決めて押したのに、勝手に別の台へ行かれると
+ * 先生が何をしたのか分からなくなるため。失敗しても今の接続先は保つ。
+ */
+export async function assignTo(serverId: string): Promise<void> {
+  const previous = connectionStore.get()
+  connectionStore.set((s) => ({ ...s, status: 'connecting', error: null }))
+  try {
+    const server = liveServers(await fetchServers()).find((s) => s.serverId === serverId)
+    if (!server) throw new Error(`${serverId} は名簿にいません（heartbeat が止まっています）`)
+    const health = await fetchHealth(server.apiUrl)
+    if (!health || health.status !== 'ok') {
+      throw new Error(`${serverId} はいま使えません（${health ? '準備中' : '応答なし'}）`)
+    }
+    const assignment = toAssignment(server, health.canRender)
+    saveAssignment(assignment)
+    connectionStore.set({ status: 'connected', assignment, error: null })
+  } catch (e) {
+    connectionStore.set(previous) // 移れなかっただけ。今の接続は切らない。
+    throw e
+  }
 }
 
 /** 接続先を忘れる（admin 用）。 */

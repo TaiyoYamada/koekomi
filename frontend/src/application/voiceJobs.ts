@@ -494,6 +494,34 @@ async function waitForJob(apiUrl: string, jobId: string, timeoutMs = 180_000): P
   return status
 }
 
+/**
+ * いまの台に預けた声を返してもらう（サーバーを移るとき）。
+ *
+ * `resetVoiceState` と違い、**手元の録音は消さない**。移った先で
+ * `ensureVoice` が IndexedDB の録音から預け直すので、子どもは録音し直さずに済む。
+ *
+ * 消しておく理由は2つ。移ったあとも古い台の「人数」に居座り続けるのを防ぐこと
+ * （その人数を見て次の子の割り当てを決めている）。そして、使わない台に
+ * 子どもの声を残さないこと。
+ */
+export async function releaseVoice(): Promise<void> {
+  stopPolling()
+  clearRememberedJob()
+  const { voiceId, voiceServerId } = voiceStore.get()
+  const assignment = getAssignment()
+  if (voiceId && assignment && voiceServerId === assignment.serverId) {
+    try {
+      await forgetVoice(assignment.apiUrl, voiceId)
+    } catch (e) {
+      // 返せなくても移動は続ける（向こうで預け直せば作品は作れる。
+      // 残った声は VOICE_TTL_SEC で消える）。
+      console.error(e)
+    }
+  }
+  voiceStore.set((s) => ({ ...s, voiceId: null, voiceServerId: null, error: null }))
+  generationStore.set(idleGeneration)
+}
+
 /** 次の子に渡すときの後始末。 */
 export async function resetVoiceState(): Promise<void> {
   stopPolling()

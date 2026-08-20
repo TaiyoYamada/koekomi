@@ -2,10 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Ruby } from '../components/Furigana'
 import { colorDef } from '../colors'
-import { fetchFleetStatus, unregisterServiceWorker, type ServerStatus } from '../../application/ops'
+import {
+  fetchFleetStatus,
+  isUsable,
+  moveToServer,
+  unregisterServiceWorker,
+  type ServerStatus,
+} from '../../application/ops'
 import { forgetAssignment, reassign, useConnection } from '../../application/connection'
 import { clearSavedWork } from '../../application/persistence'
-import { resetVoiceState } from '../../application/voiceJobs'
+import { isBusy, resetVoiceState } from '../../application/voiceJobs'
 import { useMode, workActions } from '../../application/workStore'
 import type { VoiceMode } from '../../domain/types'
 
@@ -61,6 +67,20 @@ export function AdminPanel() {
     }
   }
 
+  async function doMove(serverId: string) {
+    // 生成中に移すと、走っているジョブが移動先には無い状態になる。
+    if (isBusy() && !confirm('いま音声を作っています。中断して移しますか？')) return
+    setBusy(true)
+    try {
+      await moveToServer(serverId)
+      await refresh()
+    } catch (e) {
+      alert(`移れませんでした: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function doResetWork() {
     if (!confirm('いまの作品（写真・セリフ・録音）を消して、最初からにします。よろしいですか？'))
       return
@@ -94,8 +114,10 @@ export function AdminPanel() {
                 <th>サーバー</th>
                 <th>状態</th>
                 <th>音声</th>
+                <th>人数</th>
                 <th>待ち</th>
                 <th>動画</th>
+                <th>移動</th>
               </tr>
             </thead>
             <tbody>
@@ -125,8 +147,23 @@ export function AdminPanel() {
                           : `⚠️ ${health.ttsEffective}`
                         : '—'}
                     </td>
+                    <td>{health ? `${health.voicesEnrolled}人` : '—'}</td>
                     <td>{health ? `${health.queueDepth}行 / ${health.activeJobs}件` : '—'}</td>
                     <td>{health ? (health.canRender ? 'サーバー' : '端末') : '—'}</td>
+                    <td>
+                      {here ? (
+                        <span className="step-hint">接続中</span>
+                      ) : (
+                        <button
+                          className="btn secondary"
+                          onClick={() => void doMove(server.serverId)}
+                          // 使えない台へは移せない（移った先で詰まるだけなので）。
+                          disabled={busy || !isUsable({ server, health })}
+                        >
+                          ここに移す
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
@@ -135,7 +172,10 @@ export function AdminPanel() {
         )}
         <p className="step-hint">
           「音声」が <code>dummy</code> の台はピー音しか出ません（AIライブラリの読み込み失敗）。
-          「待ち」は未処理の行数と、処理中のジョブ数です。
+          「人数」はその台に声を預けている子の数です（名簿から選んだだけでまだ録音していない
+          端末は、サーバーからは見えないので数えられません）。「待ち」は未処理の行数と、
+          処理中のジョブ数です。「ここに移す」はこの端末の接続先を指名して変えます
+          （録音し直しは不要ですが、生成中は中断されます）。
         </p>
       </div>
 
